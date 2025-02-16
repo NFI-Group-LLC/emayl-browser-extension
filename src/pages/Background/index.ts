@@ -21,11 +21,6 @@ import {
 import browser from 'webextension-polyfill';
 import {
   CONTEXT_MENU_ITEM_ID,
-  LOADING_COPY,
-  NOTIFICATION_MESSAGE_COPY,
-  NOTIFICATION_TITLE_COPY,
-  SIGNED_IN_CTA_COPY,
-  SIGNED_OUT_CTA_COPY,
 } from './constants';
 import { isFirefox } from '../../browserUtils';
 
@@ -46,7 +41,7 @@ const performDeauthSideEffects = () => {
 
   browser.contextMenus
     .update(CONTEXT_MENU_ITEM_ID, {
-      title: SIGNED_OUT_CTA_COPY,
+      title: chrome.i18n.getMessage("SignedOut_SignInInstructions"),
       enabled: false,
     })
     .catch(console.debug);
@@ -65,7 +60,7 @@ const performAuthSideEffects = (
 
   browser.contextMenus
     .update(CONTEXT_MENU_ITEM_ID, {
-      title: SIGNED_IN_CTA_COPY,
+      title: chrome.i18n.getMessage("GenerateNewEntry"),
       enabled: true,
     })
     .catch(console.debug);
@@ -74,8 +69,8 @@ const performAuthSideEffects = (
     browser.notifications
       .create({
         type: 'basic',
-        title: NOTIFICATION_TITLE_COPY,
-        message: NOTIFICATION_MESSAGE_COPY,
+        title: chrome.i18n.getMessage("ExtensionFullTitle"),
+        message: chrome.i18n.getMessage("ExtensionReadyToUse"),
         iconUrl: 'icon-128.png',
       })
       .catch(console.debug);
@@ -91,7 +86,7 @@ browser.runtime.onMessage.addListener(async (uncastedMessage: unknown) => {
       {
         const deauthCallback = async () => {
           await sendMessageToTab(MessageType.GenerateResponse, {
-            error: SIGNED_OUT_CTA_COPY,
+            error: chrome.i18n.getMessage("SignedOut_SignInInstructions"),
             elementId,
           });
           performDeauthSideEffects();
@@ -169,7 +164,7 @@ const setupContextMenu = async () => {
   browser.contextMenus.create(
     {
       id: CONTEXT_MENU_ITEM_ID,
-      title: LOADING_COPY,
+      title: chrome.i18n.getMessage("LoadingApp"),
       contexts: ['editable'],
       enabled: false,
       visible: options.autofill.contextMenu,
@@ -235,7 +230,7 @@ browser.contextMenus.onClicked.addListener(async (info, tab) => {
 
   sendMessageToTab(
     MessageType.ActiveInputElementWrite,
-    { text: LOADING_COPY } as ActiveInputElementWriteData,
+    { text: chrome.i18n.getMessage("LoadingApp") } as ActiveInputElementWriteData,
     tab
   );
 
@@ -249,7 +244,7 @@ browser.contextMenus.onClicked.addListener(async (info, tab) => {
     sendMessageToTab(
       MessageType.ActiveInputElementWrite,
       {
-        text: SIGNED_OUT_CTA_COPY,
+        text: chrome.i18n.getMessage("SignedOut_SignInInstructions"),
         copyToClipboard: false,
       } as ActiveInputElementWriteData,
       tab

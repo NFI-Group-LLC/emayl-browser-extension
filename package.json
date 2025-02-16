@@ -1,12 +1,12 @@
 {
-  "name": "icloud-hide-my-email-browser-extension",
-  "version": "1.2.9",
-  "description": "Cross-browser extension enabling the usage of iCloud's Hide My Email service.",
+  "name": "emayl",
+  "version": "1.0",
+  "description": "Cross-browser extension for the eMayl service.",
   "license": "MIT",
-  "author": "dedoussis",
+  "author": "NFI-Group-LLC",
   "repository": {
     "type": "git",
-    "url": "https://github.com/dedoussis/icloud-hide-my-email-browser-extension.git"
+    "url": "https://github.com/NFI-Group-LLC/emayl-browser-extension.git"
   },
   "scripts": {
     "prebuild": "rm -rf build",
@@ -30,6 +30,7 @@
     "lodash.startcase": "^4.4.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "sass": "^1.85.0",
     "uuid": "^8.3.2",
     "webextension-polyfill": "^0.12.0"
   },
@@ -56,11 +57,10 @@
     "html-loader": "^3.1.0",
     "html-webpack-plugin": "^5.5.0",
     "mini-css-extract-plugin": "^2.6.1",
-    "node-sass": "^8.0.0",
     "postcss": "^8.4.16",
     "postcss-loader": "^7.0.1",
     "prettier": "^2.5.1",
-    "sass-loader": "^13.2.1",
+    "sass-loader": "^16.0.5",
     "style-loader": "^3.3.1",
     "tailwindcss": "^3.1.8",
     "terser-webpack-plugin": "^5.3.1",

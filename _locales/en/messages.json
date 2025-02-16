@@ -1,0 +1,201 @@
+{
+    "extensionName": {
+        "message": "eMayl",
+        "description": "Name of the extension"
+    },
+    "extensionDescription": {
+        "message": "Use eMayl service on Chrome.",
+        "description": "Description of the extension"
+    },
+
+    "AppName": {
+        "message": "eMayl",
+        "description": "App name"
+    },
+
+    "AppTagLine": {
+        "message": "Permissive Email Management",
+        "description": "App Tag Line"
+    },
+    "AppNameLogoAria": {
+        "message": "eMayl logo",
+        "description": "Aria string for logo"
+    },
+    "SignInView_LogInButtonLabel": {
+        "message": "Log In",
+        "description": "Login button label"
+    },
+    "SignoutButtonLabel": {
+        "message": "Sign Out",
+        "description": "Signout button label"
+    },
+
+    "SignedOut_SignInInstructions": {
+        "message": "Please sign-in to eMayl",
+        "description": "Sign in instructions"
+    },
+    "ExtensionReadyToUse": {
+        "message": "The eMayl extension is ready to use.",
+        "description": "extension loaded message"
+    },
+    "ExtensionFullTitle": {
+        "message": "eMayl Extension",
+        "description": "extension full name"
+    },
+    "OptionsSettingsSection": {
+        "message": "Settings",
+        "description": "settings section header"
+    },
+    "OptionsSettings_ForwardingToAddress": {
+        "message": "Forward To Address",
+        "description": "forward to address label"
+    },
+    "OptionsSettings_Autofill": {
+        "message": "Autofill",
+        "description": "autofill checkbox label"
+    },
+    "OptionsSettings_ForwardSave": {
+        "message": "Update",
+        "description": "forward CTA button label"
+    },
+    "OptionsError_ForwardAddrLogin": {
+        "message": "To select a new Forward To address, you first need to sign-in by following the instructions on the extension pop-up.",
+        "description": "forward address login instructions"
+    },
+
+    "HelpSubtitle": {
+        "message": "Quickstart Guide",
+        "description": "Userguide subtitle"
+    },
+    "HelpSignInHeader": {
+        "message": "Sign in to eMayl",
+        "description": "Userguide sign in instructions"
+    },
+
+    "LoadingApp": {
+        "message": "eMayl - Loading...",
+        "description": "loading message"
+    },
+    "SignInInstructions1": {
+        "message": "To use this extension, sign in to your eMayl account ",
+        "description": ""
+    },
+
+    "UserGuideHelpButton": {
+        "message": "Help",
+        "description": ""
+    },
+    "NotesLabel": {
+        "message": "Notes",
+        "description": ""
+    },
+    "NotesPlaceholder": {
+        "message": "Make a note (optional)",
+        "description": ""
+    },
+
+    "GenerateNewEntry": {
+        "message": "Generate new eMaylias",
+        "description": ""
+    },
+    "NoEntries": {
+        "message": "There are no eMaylias to list",
+        "description": ""
+    },
+    "SearchNoResults": {
+        "message": "No eMaylias matches for \"$TEXT$\"",
+        "description": "",
+        "placeholders": {
+            "text": {
+                "content": "$1"
+            }
+        }
+    },
+    "Deactivated" : {
+        "message": "Deactivated",
+        "description": ""
+    },
+    "SearchPlaceholder": {
+        "message": "Search",
+        "description": ""
+    },
+    "SearchAriaLabel": {
+        "message": "Search for an eMaylias",
+        "description": ""
+    },
+
+    "CreateScreenSubtitle": {
+        "message": "Create an eMaylias for $DOMAIN$",
+        "description": "",
+        "placeholders": {
+            "domain": {
+                "content": "$1"
+            }
+        }
+    },
+    "ForwardTo": {
+        "message": "Forwards to: $email$",
+        "description": "",
+        "placeholders": {
+            "email": {
+                "content": "$1"
+            }
+        }
+    },
+    "ManageEmails": {
+        "message": "Manage eMaylias",
+        "description": ""
+    },
+    "Emaylias": {
+        "message": "eMaylias",
+        "description": ""
+    },
+    "Label": {
+        "message": "Label",
+        "description": ""
+    },
+    "ForwardingTo": {
+        "message": "Forwarding to",
+        "description": ""
+    },
+    "CreatedAt": {
+        "message": "Created at",
+        "description": ""
+    },
+    "Autofill": {
+        "message": "Autofill",
+        "description": ""
+    },
+    "Reactivate": {
+        "message": "Reactivate",
+        "description": ""
+    },
+    "Delete": {
+        "message": "Delete",
+        "description": ""
+    },
+    "Deactivate": {
+        "message": "Deactivate",
+        "description": ""
+    },
+    "CopyEmail": {
+        "message": "Copy email address",
+        "description": ""
+    },
+    "CopyToClipboard": {
+        "message": "Copy to Clipboard",
+        "description": ""
+    },
+    "EmayliasCreated": {
+        "message": "has successfully been created.",
+        "description": ""
+    },
+    "GoToLoginSite": {
+        "message": "Go to emayl.app site to sign in",
+        "description": ""
+    },
+    "GoToLoginButton": {
+        "message": "Go to emayl.app",
+        "description": ""
+    }
+}
