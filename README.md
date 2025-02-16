@@ -1,7 +1,5 @@
 # eMayl Browser Extension
 
-[![Tests Status](https://github.com/dedoussis/icloud-hide-my-email-browser-extension/workflows/tests/badge.svg)](https://github.com/dedoussis/icloud-hide-my-email-browser-extension/actions/workflows/tests.yml)
-
 [eMayl](https://emayl.app) is a premium privacy and email security service to enable creating and using eMaylias (email aliases) for anywebsite. This extension aims to bring a similar UX into a wider variety of browsers including Chrome, Firefox and Microsoft Edge.
 
 Note that the extension _should_ work on any browser that implements the [extension API](https://developer.chrome.com/docs/extensions/reference/) supported by Chromium-based browsers.
