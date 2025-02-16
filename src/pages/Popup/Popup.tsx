@@ -25,11 +25,10 @@ import {
   faTrashAlt,
   faBan,
   faSearch,
-  faInfoCircle,
   faExternalLink,
   faQuestionCircle,
 } from '@fortawesome/free-solid-svg-icons';
-import { faFirefoxBrowser } from '@fortawesome/free-brands-svg-icons';
+// import { faFirefoxBrowser } from '@fortawesome/free-brands-svg-icons';
 import { MessageType, sendMessageToTab } from '../../messages';
 import {
   ErrorMessage,
@@ -50,11 +49,8 @@ import {
   STATE_MACHINE_TRANSITIONS,
   AuthenticatedAndManagingAction,
 } from './stateMachine';
-import {
-  CONTEXT_MENU_ITEM_ID,
-  SIGNED_OUT_CTA_COPY,
-} from '../Background/constants';
-import { isFirefox } from '../../browserUtils';
+import { CONTEXT_MENU_ITEM_ID } from '../Background/constants';
+// import { isFirefox } from '../../browserUtils';
 
 type TransitionCallback<T extends PopupAction> = (action: T) => void;
 
@@ -62,77 +58,45 @@ const SignInInstructions = () => {
   const userguideUrl = browser.runtime.getURL('userguide.html');
 
   return (
-    <TitledComponent title="Hide My Email" subtitle="Sign in to iCloud">
+    <TitledComponent
+      title={chrome.i18n.getMessage("AppName")}
+      subtitle={chrome.i18n.getMessage("SignInView_LogInButtonLabel")}
+    >
       <div className="space-y-4">
         <div className="text-sm space-y-2">
           <p>
-            To use this extension, sign in to your iCloud account on{' '}
+            {chrome.i18n.getMessage("SignInInstructions1")}
+            {' '}
             <Link
-              href="https://icloud.com"
+              href="https://emayl.app"
               className="font-semibold"
-              aria-label="Go to iCloud.com"
+              aria-label={chrome.i18n.getMessage("GoToLoginSite")}
             >
-              icloud.com
+              emayl.app
             </Link>
             .
           </p>
-          <p>
-            Complete the full sign-in process, including{' '}
-            <span className="font-semibold">two-factor authentication</span> and{' '}
-            <span className="font-semibold">Trust This Browser</span>.
-          </p>
         </div>
-        <div
-          className="flex p-3 text-sm border text-gray-600 rounded-lg bg-gray-50"
-          role="alert"
-        >
-          <FontAwesomeIcon icon={faInfoCircle} className="mr-2 mt-1" />
-          <span className="sr-only">Info</span>
-          <div>
-            <span className="font-semibold">Pro-tip:</span> Tick the{' '}
-            <span className="font-semibold">Keep me signed in</span> box
-          </div>
-        </div>
-        {isFirefox && (
-          <div
-            className="flex p-3 text-sm border text-gray-600 rounded-lg bg-gray-50"
-            role="alert"
-          >
-            <FontAwesomeIcon icon={faFirefoxBrowser} className="mr-2 mt-1" />
-            <span className="sr-only">Info</span>
-            <div>
-              If using{' '}
-              <Link
-                href="https://support.mozilla.org/en-US/kb/containers"
-                className="font-semibold"
-                aria-label="Firefox Multi-Account Containers docs"
-              >
-                Firefox Containers
-              </Link>
-              , sign in to iCloud from a tab outside of a container.
-            </div>
-          </div>
-        )}
         <div className="grid grid-cols-2 gap-3">
           <a
             href={userguideUrl}
             target="_blank"
             rel="noreferrer"
             className="w-full justify-center text-white bg-sky-400 hover:bg-sky-500 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg px-5 py-2.5 text-center mr-2 inline-flex items-center"
-            aria-label="Help"
+            aria-label={chrome.i18n.getMessage("UserGuideHelpButton")}
           >
             <FontAwesomeIcon icon={faQuestionCircle} className="mr-1" />
             Help
           </a>
           <a
-            href="https://icloud.com"
+            href="https://emayl.app"
             target="_blank"
             rel="noreferrer"
             className="w-full justify-center text-white bg-sky-400 hover:bg-sky-500 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg px-5 py-2.5 text-center mr-2 inline-flex items-center"
-            aria-label="Go to iCloud.com"
+            aria-label={chrome.i18n.getMessage("GoToLoginSite")}
           >
-            <FontAwesomeIcon icon={faExternalLink} className="mr-1" /> Go to
-            icloud.com
+            <FontAwesomeIcon icon={faExternalLink} className="mr-1" />
+            {chrome.i18n.getMessage("GoToLoginButton")}
           </a>
         </div>
       </div>
@@ -158,7 +122,7 @@ const ReservationResult = (props: { hme: HmeEmail }) => {
       role="alert"
     >
       <p>
-        <strong>{props.hme.hme}</strong> has successfully been reserved!
+        <strong>{props.hme.hme}</strong> {chrome.i18n.getMessage("EmayliasCreated")}
       </p>
       <div className="grid grid-cols-2 gap-2">
         <button
@@ -167,7 +131,7 @@ const ReservationResult = (props: { hme: HmeEmail }) => {
           onClick={onCopyToClipboardClick}
         >
           <FontAwesomeIcon icon={faClipboard} className="mr-1" />
-          Copy to clipboard
+          {chrome.i18n.getMessage("CopyToClipboard")}
         </button>
         <button
           type="button"
@@ -175,7 +139,7 @@ const ReservationResult = (props: { hme: HmeEmail }) => {
           onClick={onAutofillClick}
         >
           <FontAwesomeIcon icon={faCheck} className="mr-1" />
-          Autofill
+          {chrome.i18n.getMessage("Autofill")}
         </button>
       </div>
     </div>
@@ -202,7 +166,7 @@ const FooterButton = (
 async function performDeauthSideEffects(): Promise<void> {
   await browser.contextMenus
     .update(CONTEXT_MENU_ITEM_ID, {
-      title: SIGNED_OUT_CTA_COPY,
+      title: chrome.i18n.getMessage("SignedOut_SignInInstructions"),
       enabled: false,
     })
     .catch(console.debug);
@@ -222,7 +186,7 @@ const SignOutButton = (props: {
         performDeauthSideEffects();
         props.callback('SIGN_OUT');
       }}
-      label="Sign out"
+      label={chrome.i18n.getMessage("SignoutButtonLabel")}
       icon={faSignOut}
     />
   );
@@ -339,8 +303,8 @@ const HmeGenerator = (props: {
 
   return (
     <TitledComponent
-      title="Hide My Email"
-      subtitle={`Create an address for '${tabHost}'`}
+      title={chrome.i18n.getMessage("AppName")}
+      subtitle={chrome.i18n.getMessage("CreateScreenSubtitle", tabHost)}
     >
       <div className="text-center space-y-1">
         <div>
@@ -355,7 +319,9 @@ const HmeGenerator = (props: {
             {hmeEmail}
           </span>
           {fwdToEmail !== undefined && (
-            <p className="text-gray-400">Forward to: {fwdToEmail}</p>
+            <p className="text-gray-400">
+              {chrome.i18n.getMessage("ForwardTo", [fwdToEmail])}
+            </p>
           )}
         </div>
         {hmeError && <ErrorMessage>{hmeError}</ErrorMessage>}
@@ -370,7 +336,7 @@ const HmeGenerator = (props: {
           >
             <div>
               <label htmlFor="label" className="block font-medium">
-                Label
+                {chrome.i18n.getMessage("Label")}
               </label>
               <input
                 id="label"
@@ -384,13 +350,13 @@ const HmeGenerator = (props: {
             </div>
             <div>
               <label htmlFor="note" className="block font-medium">
-                Note
+                {chrome.i18n.getMessage("NotesLabel")}
               </label>
               <textarea
                 id="note"
                 rows={1}
                 className={reservationFormInputClassName}
-                placeholder="Make a note (optional)"
+                placeholder={chrome.i18n.getMessage("NotesPlaceholder")}
                 value={note || ''}
                 onChange={(e) => setNote(e.target.value)}
                 disabled={isReservationFormDisabled}
@@ -412,7 +378,7 @@ const HmeGenerator = (props: {
           <FooterButton
             onClick={() => props.callback('MANAGE')}
             icon={faList}
-            label="Manage emails"
+            label={chrome.i18n.getMessage("ManageEmails")}
           />
         </div>
         <div className="text-right">
@@ -481,17 +447,17 @@ const HmeDetails = (props: {
 
   const btnClassName =
     'w-full justify-center text-white focus:ring-4 focus:outline-none font-medium rounded-lg px-2 py-3 text-center inline-flex items-center';
-  const labelClassName = 'font-bold';
-  const valueClassName = 'text-gray-500 truncate';
+  const labelClassName = 'font-semibold text-sm';
+  const valueClassName = 'text-gray-500 text-sm break-words';
 
   return (
     <div className="space-y-2">
       <div>
-        <p className={labelClassName}>Email</p>
+        <p className={labelClassName}>{chrome.i18n.getMessage("Emaylias")}</p>
         <p title={props.hme.hme} className={valueClassName}>
           {props.hme.isActive || (
             <FontAwesomeIcon
-              title="Deactivated"
+              title={chrome.i18n.getMessage("Deactivated")}
               icon={faBan}
               className="text-red-500 mr-1"
             />
@@ -500,26 +466,26 @@ const HmeDetails = (props: {
         </p>
       </div>
       <div>
-        <p className={labelClassName}>Label</p>
+        <p className={labelClassName}>{chrome.i18n.getMessage("Label")}</p>
         <p title={props.hme.label} className={valueClassName}>
           {props.hme.label}
         </p>
       </div>
       <div>
-        <p className={labelClassName}>Forward To</p>
+        <p className={labelClassName}>{chrome.i18n.getMessage("ForwardingTo")}</p>
         <p title={props.hme.forwardToEmail} className={valueClassName}>
           {props.hme.forwardToEmail}
         </p>
       </div>
       <div>
-        <p className={labelClassName}>Created at</p>
+        <p className={labelClassName}>{chrome.i18n.getMessage("CreatedAt")}</p>
         <p className={valueClassName}>
           {new Date(props.hme.createTimestamp).toLocaleString()}
         </p>
       </div>
       {props.hme.note && (
         <div>
-          <p className={labelClassName}>Note</p>
+          <p className={labelClassName}>{chrome.i18n.getMessage("NotesLabel")}</p>
           <p title={props.hme.note} className={valueClassName}>
             {props.hme.note}
           </p>
@@ -528,21 +494,21 @@ const HmeDetails = (props: {
       {error && <ErrorMessage>{error}</ErrorMessage>}
       <div className="grid grid-cols-3 gap-2">
         <button
-          title="Copy"
+          title={chrome.i18n.getMessage("CopyEmail")}
           className={`${btnClassName} bg-sky-400 hover:bg-sky-500 focus:ring-blue-300`}
           onClick={onCopyClick}
         >
           <FontAwesomeIcon icon={faClipboard} />
         </button>
         <button
-          title="Autofill"
+          title={chrome.i18n.getMessage("Autofill")}
           className={`${btnClassName} bg-sky-400 hover:bg-sky-500 focus:ring-blue-300`}
           onClick={onAutofillClick}
         >
           <FontAwesomeIcon icon={faCheck} />
         </button>
         <LoadingButton
-          title={props.hme.isActive ? 'Deactivate' : 'Reactivate'}
+          title={props.hme.isActive ? chrome.i18n.getMessage("Deactivate") : chrome.i18n.getMessage("Reactivate")}
           className={`${btnClassName} ${
             props.hme.isActive
               ? 'bg-red-500 hover:bg-red-600 focus:ring-red-300'
@@ -555,12 +521,13 @@ const HmeDetails = (props: {
         </LoadingButton>
         {!props.hme.isActive && (
           <LoadingButton
-            title="Delete"
+            title={chrome.i18n.getMessage("Delete")}
             className={`${btnClassName} bg-red-500 hover:bg-red-600 focus:ring-red-300 col-span-3`}
             onClick={onDeletionClick}
             loading={isDeleteSubmitting}
           >
-            <FontAwesomeIcon icon={faTrashAlt} className="mr-1" /> Delete
+            <FontAwesomeIcon icon={faTrashAlt} className="mr-1" />
+            {chrome.i18n.getMessage("Delete")}
           </LoadingButton>
         )}
       </div>
@@ -647,8 +614,8 @@ const HmeManager = (props: {
         <input
           type="search"
           className="pl-9 p-2 w-full rounded placeholder-gray-400 border border-gray-200 focus:outline-none focus:border-sky-400"
-          placeholder="Search"
-          aria-label="Search through your HideMyEmail addresses"
+          placeholder={chrome.i18n.getMessage("SearchPlaceholder")}
+          aria-label={chrome.i18n.getMessage("SearchAriaLabel")}
           onChange={(e) => {
             setSearchPrompt(e.target.value);
             setSelectedHmeIdx(0);
@@ -673,7 +640,7 @@ const HmeManager = (props: {
         {hme.isActive ? (
           hme.label
         ) : (
-          <div title="Deactivated">
+          <div title={chrome.i18n.getMessage("Deactivated")}>
             <FontAwesomeIcon icon={faBan} className="text-red-500 mr-1" />
             {hme.label}
           </div>
@@ -683,13 +650,13 @@ const HmeManager = (props: {
 
     const noSearchResult = (
       <div className="p-3 break-words text-center text-gray-400">
-        No results for &quot;{searchPrompt}&quot;
+        {chrome.i18n.getMessage("SearchNoResults", searchPrompt)}
       </div>
     );
 
     return (
       <div className="grid grid-cols-2" style={{ height: 398 }}>
-        <div className="overflow-y-auto text-sm rounded-l-md border border-gray-200">
+        <div className="overflow-y-auto text-sm rounded-l-md border border-gray-200 h-full">
           <div className="sticky top-0 border-b">{searchBox}</div>
           {hmeEmails.length === 0 && searchPrompt ? noSearchResult : labelList}
         </div>
@@ -709,7 +676,7 @@ const HmeManager = (props: {
 
   const emptyState = (
     <div className="text-center text-lg text-gray-400">
-      There are no emails to list
+      {chrome.i18n.getMessage("NoEntries")}
     </div>
   );
 
@@ -731,8 +698,8 @@ const HmeManager = (props: {
 
   return (
     <TitledComponent
-      title="Hide My Email"
-      subtitle="Manage your HideMyEmail addresses"
+      title={chrome.i18n.getMessage("AppName")}
+      subtitle={chrome.i18n.getMessage("AppTagLine")}
     >
       {resolveMainChildComponent()}
       <div className="grid grid-cols-2">
@@ -740,7 +707,7 @@ const HmeManager = (props: {
           <FooterButton
             onClick={() => props.callback('GENERATE')}
             icon={faPlus}
-            label="Generate new email"
+            label={chrome.i18n.getMessage("GenerateNewEntry")}
           />
         </div>
         <div className="text-right">

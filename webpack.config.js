@@ -119,7 +119,7 @@ const options = {
     new CopyWebpackPlugin({
       patterns: [
         {
-          from: 'src/manifest.json',
+          from: 'manifest.json',
           to: path.join(__dirname, 'build'),
           force: true,
           transform: function (content) {
@@ -162,8 +162,8 @@ const options = {
           force: true,
         },
         {
-          from: 'src/assets/img/icloud-sign-in.webp',
-          to: path.join(__dirname, 'build'),
+          from: '_locales',
+          to: '_locales',
           force: true,
         },
       ],

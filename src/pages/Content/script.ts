@@ -14,8 +14,6 @@ import { getBrowserStorageValue } from '../../storage';
 const EMAIL_INPUT_QUERY_STRING =
   'input[type="email"], input[name="email"], input[id="email"]';
 
-const LOADING_COPY = 'Hide My Email — Loading...';
-
 // A unique CSS class prefix is used to guarantee that the style injected
 // by the extension does not interfere with the existing style of
 // a web page.
@@ -66,6 +64,8 @@ const enableButton = (
   btn.classList.add(className(cursorClass));
 };
 
+const loadingApp = chrome.i18n.getMessage("LoadingApp") 
+
 const makeButtonSupport = (
   inputElement: HTMLInputElement
 ): AutofillableInputElement['buttonSupport'] => {
@@ -75,10 +75,10 @@ const makeButtonSupport = (
   btnElement.setAttribute('type', 'button');
   btnElement.classList.add(className('button'));
 
-  disableButton(btnElement, 'cursor-not-allowed', LOADING_COPY);
+  disableButton(btnElement, 'cursor-not-allowed', loadingApp);
 
   const inputOnFocusCallback = async () => {
-    disableButton(btnElement, 'cursor-progress', LOADING_COPY);
+    disableButton(btnElement, 'cursor-progress', loadingApp);
     inputElement.parentNode?.insertBefore(btnElement, inputElement.nextSibling);
 
     await browser.runtime.sendMessage({
@@ -90,7 +90,7 @@ const makeButtonSupport = (
   inputElement.addEventListener('focus', inputOnFocusCallback);
 
   const inputOnBlurCallback = () => {
-    disableButton(btnElement, 'cursor-not-allowed', LOADING_COPY);
+    disableButton(btnElement, 'cursor-not-allowed', loadingApp);
     btnElement.remove();
   };
 
@@ -99,7 +99,7 @@ const makeButtonSupport = (
   const btnOnMousedownCallback = async (ev: MouseEvent) => {
     ev.preventDefault();
     const hme = btnElement.innerHTML;
-    disableButton(btnElement, 'cursor-progress', LOADING_COPY);
+    disableButton(btnElement, 'cursor-progress', loadingApp);
     await browser.runtime.sendMessage({
       type: MessageType.ReservationRequest,
       data: { hme, label: window.location.host, elementId: btnElement.id },

@@ -7,14 +7,10 @@ import {
   LoadingButton,
   ErrorMessage,
   TitledComponent,
-  Link,
 } from '../../commonComponents';
 import startCase from 'lodash.startcase';
 import isEqual from 'lodash.isequal';
 import { DEFAULT_STORE } from '../../storage';
-
-const SELECT_FWD_TO_SIGNED_OUT_CTA_COPY =
-  'To select a new Forward-To address, you first need to sign-in by following the instructions on the extension pop-up.';
 
 const SelectFwdToForm = () => {
   const [selectedFwdToEmail, setSelectedFwdToEmail] = useState<string>();
@@ -32,7 +28,7 @@ const SelectFwdToForm = () => {
       setIsFetching(true);
 
       if (clientState?.setupUrl === undefined) {
-        setListHmeError(SELECT_FWD_TO_SIGNED_OUT_CTA_COPY);
+        setListHmeError(chrome.i18n.getMessage("OptionsError_ForwardAddrLogin"));
         setIsFetching(false);
         return;
       }
@@ -40,7 +36,7 @@ const SelectFwdToForm = () => {
       const client = new ICloudClient(clientState.setupUrl);
       const isClientAuthenticated = await client.isAuthenticated();
       if (!isClientAuthenticated) {
-        setListHmeError(SELECT_FWD_TO_SIGNED_OUT_CTA_COPY);
+        setListHmeError(chrome.i18n.getMessage("OptionsError_ForwardAddrLogin"));
         setIsFetching(false);
         return;
       }
@@ -74,7 +70,7 @@ const SelectFwdToForm = () => {
       // as the client state is validated prior to rendering the form that
       // triggered this event handler.
       console.error('onSelectedFwdToSubmit: clientState is undefined');
-      setUpdateFwdToError(SELECT_FWD_TO_SIGNED_OUT_CTA_COPY);
+      setUpdateFwdToError(chrome.i18n.getMessage("OptionsError_ForwardAddrLogin"));
     } else if (selectedFwdToEmail) {
       try {
         const client = new ICloudClient(
@@ -121,35 +117,11 @@ const SelectFwdToForm = () => {
           </label>
         </div>
       ))}
-      <LoadingButton loading={isSubmitting}>Update</LoadingButton>
+      <LoadingButton loading={isSubmitting}>
+        {chrome.i18n.getMessage("OptionsSettings_ForwardSave")}
+      </LoadingButton>
       {updateFwdToError && <ErrorMessage>{updateFwdToError}</ErrorMessage>}
     </form>
-  );
-};
-
-const Disclaimer = () => {
-  return (
-    <div>
-      <p>
-        This extension is not endorsed by, directly affiliated with, maintained,
-        authorized, or sponsored by Apple.
-      </p>
-      <p>
-        It is developed independently by{' '}
-        <Link href="https://twitter.com/dedoussis">Dimitrios Dedoussis</Link>.
-      </p>
-      <p>
-        The source code is publicly available at{' '}
-        <Link href="https://github.com/dedoussis/icloud-hide-my-email-browser-extension">
-          GitHub
-        </Link>{' '}
-        under the MIT license.
-      </p>
-      <p>
-        The extension itself is licensed under the same license as the source
-        code.
-      </p>
-    </div>
   );
 };
 
@@ -191,17 +163,20 @@ const AutofillForm = () => {
 const Options = () => {
   return (
     <div className="w-9/12 m-auto my-3">
-      <TitledComponent title="Hide My Email" subtitle="Settings">
+      <TitledComponent
+        title={chrome.i18n.getMessage("AppName")}
+        subtitle={chrome.i18n.getMessage("OptionsSettingsSection")}
+      >
         <div>
-          <h3 className="font-bold text-lg mb-3">Disclaimer</h3>
-          <Disclaimer />
-        </div>
-        <div>
-          <h3 className="font-bold text-lg mb-3">Forward To Address</h3>
+          <h3 className="font-bold text-lg mb-3">
+            {chrome.i18n.getMessage("OptionsSettings_ForwardingToAddress")}
+          </h3>
           <SelectFwdToForm />
         </div>
         <div>
-          <h3 className="font-bold text-lg mb-3">Autofill</h3>
+          <h3 className="font-bold text-lg mb-3">
+            {chrome.i18n.getMessage("OptionsSettings_Autofill")}
+          </h3>
           <AutofillForm />
         </div>
       </TitledComponent>
