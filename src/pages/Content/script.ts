@@ -98,11 +98,11 @@ const makeButtonSupport = (
 
   const btnOnMousedownCallback = async (ev: MouseEvent) => {
     ev.preventDefault();
-    const hme = btnElement.innerHTML;
+    const email = btnElement.innerHTML;
     disableButton(btnElement, 'cursor-progress', loadingApp);
     await browser.runtime.sendMessage({
       type: MessageType.ReservationRequest,
-      data: { hme, label: window.location.host, elementId: btnElement.id },
+      data: { email, label: window.location.host, elementId: btnElement.id },
     } as Message<ReservationRequestData>);
   };
 
@@ -132,7 +132,7 @@ export default async function main(): Promise<void> {
     EMAIL_INPUT_QUERY_STRING
   );
 
-  const options = await getBrowserStorageValue('iCloudHmeOptions');
+  const options = await getBrowserStorageValue('options');
 
   const makeAutofillableInputElement = (
     inputElement: HTMLInputElement
@@ -141,7 +141,7 @@ export default async function main(): Promise<void> {
     buttonSupport:
       options?.autofill.button === false
         ? undefined
-        : makeButtonSupport(inputElement),
+        : undefined // makeButtonSupport(inputElement),
   });
 
   const autofillableInputElements = Array.from(emailInputElements).map(
@@ -211,7 +211,7 @@ export default async function main(): Promise<void> {
         break;
       case MessageType.GenerateResponse:
         {
-          const { hme, elementId, error } =
+          const { email, elementId, error } =
             message.data as GenerationResponseData;
 
           const element = document.getElementById(elementId);
@@ -225,16 +225,16 @@ export default async function main(): Promise<void> {
             break;
           }
 
-          if (!hme) {
+          if (!email) {
             break;
           }
 
-          enableButton(element, 'cursor-pointer', hme);
+          enableButton(element, 'cursor-pointer', email);
         }
         break;
       case MessageType.ReservationResponse:
         {
-          const { hme, error, elementId } =
+          const { email, error, elementId } =
             message.data as ReservationResponseData;
 
           const btnElement = document.getElementById(elementId);
@@ -248,7 +248,7 @@ export default async function main(): Promise<void> {
             break;
           }
 
-          if (!hme) {
+          if (!email) {
             break;
           }
 
@@ -260,7 +260,7 @@ export default async function main(): Promise<void> {
           }
 
           const { inputElement, buttonSupport } = found;
-          inputElement.value = hme;
+          inputElement.value = email;
           inputElement.dispatchEvent(new Event('input', { bubbles: true }));
           inputElement.dispatchEvent(new Event('change', { bubbles: true }));
 

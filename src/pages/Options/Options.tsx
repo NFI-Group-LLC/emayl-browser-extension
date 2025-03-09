@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './Options.css';
-import { useBrowserStorageState } from '../../hooks';
-import ICloudClient, { PremiumMailSettings } from '../../iCloudClient';
+import { useBrowserStorageState } from '../../useBrowserStorageState';
 import {
   Spinner,
   LoadingButton,
@@ -11,6 +10,8 @@ import {
 import startCase from 'lodash.startcase';
 import isEqual from 'lodash.isequal';
 import { DEFAULT_STORE } from '../../storage';
+import EmaylClient from '../../eMaylClient';
+import { PremiumMailSettings } from '../../PremiumMailSettings';
 
 const SelectFwdToForm = () => {
   const [selectedFwdToEmail, setSelectedFwdToEmail] = useState<string>();
@@ -33,7 +34,7 @@ const SelectFwdToForm = () => {
         return;
       }
 
-      const client = new ICloudClient(clientState.setupUrl);
+      const client = new EmaylClient(clientState.setupUrl);
       const isClientAuthenticated = await client.isAuthenticated();
       if (!isClientAuthenticated) {
         setListHmeError(chrome.i18n.getMessage("OptionsError_ForwardAddrLogin"));
@@ -43,7 +44,7 @@ const SelectFwdToForm = () => {
 
       try {
         const pms = new PremiumMailSettings(client);
-        const result = await pms.listHme();
+        const result = await pms.getList();
         setFwdToEmails((prevState) =>
           isEqual(prevState, result.forwardToEmails)
             ? prevState
@@ -73,12 +74,12 @@ const SelectFwdToForm = () => {
       setUpdateFwdToError(chrome.i18n.getMessage("OptionsError_ForwardAddrLogin"));
     } else if (selectedFwdToEmail) {
       try {
-        const client = new ICloudClient(
+        const client = new EmaylClient(
           clientState.setupUrl,
           clientState.webservices
         );
         const pms = new PremiumMailSettings(client);
-        await pms.updateForwardToHme(selectedFwdToEmail);
+        await pms.updateForwardTo(selectedFwdToEmail);
       } catch (e) {
         setUpdateFwdToError(e.toString());
       }
@@ -127,8 +128,8 @@ const SelectFwdToForm = () => {
 
 const AutofillForm = () => {
   const [options, setOptions] = useBrowserStorageState(
-    'iCloudHmeOptions',
-    DEFAULT_STORE.iCloudHmeOptions
+    'options',
+    DEFAULT_STORE.options
   );
 
   return (

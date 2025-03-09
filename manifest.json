@@ -20,7 +20,7 @@
   "declarative_net_request": {
     "rule_resources": [
       {
-        "id": "icloud_com_simulation_headers",
+        "id": "emayl_app_simulation_headers",
         "enabled": true,
         "path": "rules.json"
       }
@@ -32,10 +32,10 @@
     "tabs",
     "contextMenus",
     "webRequest",
-    "notifications"
+    "notifications",
+    "cookies"
   ],
   "host_permissions": [
-    "https://*.icloud.com/*",
     "https://*.emayl.app/*"
   ],
   "icons": {
