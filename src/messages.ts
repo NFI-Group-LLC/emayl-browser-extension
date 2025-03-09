@@ -15,13 +15,13 @@ export type Message<T> = {
 };
 
 export type ReservationRequestData = {
-  hme: string;
+  email: string;
   label: string;
   elementId: string;
 };
 
 export type GenerationResponseData = {
-  hme?: string;
+  email?: string;
   elementId: string;
   error?: string;
 };

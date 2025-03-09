@@ -8,43 +8,19 @@
         {
           "header": "Origin",
           "operation": "set",
-          "value": "https://www.icloud.com"
+          "value": "https://www.emayl.app"
         },
         {
           "header": "Referer",
           "operation": "set",
-          "value": "https://www.icloud.com/"
+          "value": "https://www.emayl.app/"
         }
       ]
     },
     "condition": {
-      "urlFilter": "|https://*.icloud.com/*",
+      "urlFilter": "|https://*.emayl.app/*",
       "resourceTypes": ["xmlhttprequest"],
-      "excludedInitiatorDomains": ["apple.com", "icloud.com"]
-    }
-  },
-  {
-    "id": 2,
-    "priority": 1,
-    "action": {
-      "type": "modifyHeaders",
-      "requestHeaders": [
-        {
-          "header": "Origin",
-          "operation": "set",
-          "value": "https://www.icloud.com.cn"
-        },
-        {
-          "header": "Referer",
-          "operation": "set",
-          "value": "https://www.icloud.com.cn/"
-        }
-      ]
-    },
-    "condition": {
-      "urlFilter": "|https://*.icloud.com.cn/*",
-      "resourceTypes": ["xmlhttprequest"],
-      "excludedInitiatorDomains": ["apple.com.cn", "icloud.com.cn"]
+      "excludedInitiatorDomains": ["nfigroup.io", "emayl.app"]
     }
   }
 ]

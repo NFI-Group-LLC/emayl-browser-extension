@@ -7,12 +7,8 @@ import React, {
   ReactNode,
   ReactElement,
 } from 'react';
-import ICloudClient, {
-  PremiumMailSettings,
-  HmeEmail,
-} from '../../iCloudClient';
 import './Popup.css';
-import { useBrowserStorageState } from '../../hooks';
+import { useBrowserStorageState } from '../../useBrowserStorageState';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faRefresh,
@@ -50,6 +46,9 @@ import {
   AuthenticatedAndManagingAction,
 } from './stateMachine';
 import { CONTEXT_MENU_ITEM_ID } from '../Background/constants';
+import { Emaylias } from '../../types';
+import EmaylClient from '../../eMaylClient';
+import { PremiumMailSettings } from '../../PremiumMailSettings';
 // import { isFirefox } from '../../browserUtils';
 
 type TransitionCallback<T extends PopupAction> = (action: T) => void;
@@ -104,13 +103,13 @@ const SignInInstructions = () => {
   );
 };
 
-const ReservationResult = (props: { hme: HmeEmail }) => {
+const ReservationResult = (props: { emaylias: Emaylias }) => {
   const onCopyToClipboardClick = async () => {
-    await navigator.clipboard.writeText(props.hme.hme);
+    await navigator.clipboard.writeText(props.emaylias.email);
   };
 
   const onAutofillClick = async () => {
-    await sendMessageToTab(MessageType.Autofill, props.hme.hme);
+    await sendMessageToTab(MessageType.Autofill, props.emaylias.email);
   };
 
   const btnClassName =
@@ -122,7 +121,7 @@ const ReservationResult = (props: { hme: HmeEmail }) => {
       role="alert"
     >
       <p>
-        <strong>{props.hme.hme}</strong> {chrome.i18n.getMessage("EmayliasCreated")}
+        <strong>{props.emaylias.email}</strong> {chrome.i18n.getMessage("EmayliasCreated")}
       </p>
       <div className="grid grid-cols-2 gap-2">
         <button
@@ -164,17 +163,17 @@ const FooterButton = (
 };
 
 async function performDeauthSideEffects(): Promise<void> {
-  await browser.contextMenus
-    .update(CONTEXT_MENU_ITEM_ID, {
-      title: chrome.i18n.getMessage("SignedOut_SignInInstructions"),
-      enabled: false,
-    })
-    .catch(console.debug);
+  // await browser.contextMenus
+  //   .update(CONTEXT_MENU_ITEM_ID, {
+  //     title: chrome.i18n.getMessage("SignedOut_SignInInstructions"),
+  //     enabled: false,
+  //   })
+  //   .catch(console.debug);
 }
 
 const SignOutButton = (props: {
   callback: TransitionCallback<'SIGN_OUT'>;
-  client: ICloudClient;
+  client: EmaylClient;
 }) => {
   return (
     <FooterButton
@@ -194,12 +193,12 @@ const SignOutButton = (props: {
 
 const HmeGenerator = (props: {
   callback: TransitionCallback<AuthenticatedAction>;
-  client: ICloudClient;
+  client: EmaylClient;
 }) => {
   const [hmeEmail, setHmeEmail] = useState<string>();
   const [hmeError, setHmeError] = useState<string>();
 
-  const [reservedHme, setReservedHme] = useState<HmeEmail>();
+  const [reservedHme, setReservedHme] = useState<Emaylias>();
   const [reserveError, setReserveError] = useState<string>();
 
   const [isEmailRefreshSubmitting, setIsEmailRefreshSubmitting] =
@@ -216,7 +215,7 @@ const HmeGenerator = (props: {
       setHmeError(undefined);
       try {
         const pms = new PremiumMailSettings(props.client);
-        const result = await pms.listHme();
+        const result = await pms.getList();
         setFwdToEmail(result.selectedForwardTo);
       } catch (e) {
         setHmeError(e.toString());
@@ -232,7 +231,7 @@ const HmeGenerator = (props: {
       setIsEmailRefreshSubmitting(true);
       try {
         const pms = new PremiumMailSettings(props.client);
-        setHmeEmail(await pms.generateHme());
+        setHmeEmail(await pms.generateEmail());
       } catch (e) {
         setHmeError(e.toString());
       } finally {
@@ -267,7 +266,7 @@ const HmeGenerator = (props: {
     setReserveError(undefined);
     try {
       const pms = new PremiumMailSettings(props.client);
-      setHmeEmail(await pms.generateHme());
+      setHmeEmail(await pms.generateEmail());
     } catch (e) {
       setHmeError(e.toString());
     }
@@ -281,22 +280,22 @@ const HmeGenerator = (props: {
     setReserveError(undefined);
 
     if (hmeEmail !== undefined) {
-      try {
-        const pms = new PremiumMailSettings(props.client);
-        setReservedHme(
-          await pms.reserveHme(hmeEmail, label || tabHost, note || undefined)
-        );
-        setLabel(undefined);
-        setNote(undefined);
-      } catch (e) {
-        setReserveError(e.toString());
-      }
+      // try {
+      //   const pms = new PremiumMailSettings(props.client);
+      //   setReservedHme(
+      //     await pms.reserveHme(hmeEmail, label || tabHost, note || undefined)
+      //   );
+      //   setLabel(undefined);
+      //   setNote(undefined);
+      // } catch (e) {
+      //   setReserveError(e.toString());
+      // }
     }
     setIsUseSubmitting(false);
   };
 
   const isReservationFormDisabled =
-    isEmailRefreshSubmitting || hmeEmail == reservedHme?.hme;
+    isEmailRefreshSubmitting || hmeEmail == reservedHme?.email;
 
   const reservationFormInputClassName =
     'appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-400 text-gray-900 focus:outline-none focus:border-sky-400 focus:z-10 sm:text-sm';
@@ -370,7 +369,7 @@ const HmeGenerator = (props: {
             </LoadingButton>
             {reserveError && <ErrorMessage>{reserveError}</ErrorMessage>}
           </form>
-          {reservedHme && <ReservationResult hme={reservedHme} />}
+          {reservedHme && <ReservationResult emaylias={reservedHme} />}
         </div>
       )}
       <div className="grid grid-cols-2">
@@ -389,9 +388,9 @@ const HmeGenerator = (props: {
   );
 };
 
-const HmeDetails = (props: {
-  hme: HmeEmail;
-  client: ICloudClient;
+const AliasEntryDetails = (props: {
+  emaylias: Emaylias;
+  client: EmaylClient;
   activationCallback: () => void;
   deletionCallback: () => void;
 }) => {
@@ -405,16 +404,16 @@ const HmeDetails = (props: {
     setError(undefined);
     setIsActivateSubmitting(false);
     setIsDeleteSubmitting(false);
-  }, [props.hme]);
+  }, [props.emaylias]);
 
   const onActivationClick = async () => {
     setIsActivateSubmitting(true);
     try {
       const pms = new PremiumMailSettings(props.client);
-      if (props.hme.isActive) {
-        await pms.deactivateHme(props.hme.anonymousId);
+      if (props.emaylias.isActive) {
+        await pms.deactivateAlias(props.emaylias.id);
       } else {
-        await pms.reactivateHme(props.hme.anonymousId);
+        await pms.reactivateAlias(props.emaylias.id);
       }
       props.activationCallback();
     } catch (e) {
@@ -428,7 +427,7 @@ const HmeDetails = (props: {
     setIsDeleteSubmitting(true);
     try {
       const pms = new PremiumMailSettings(props.client);
-      await pms.deleteHme(props.hme.anonymousId);
+      await pms.deleteAlias(props.emaylias.id);
       props.deletionCallback();
     } catch (e) {
       setError(e.toString());
@@ -438,11 +437,11 @@ const HmeDetails = (props: {
   };
 
   const onCopyClick = async () => {
-    await navigator.clipboard.writeText(props.hme.hme);
+    await navigator.clipboard.writeText(props.emaylias.email);
   };
 
   const onAutofillClick = async () => {
-    await sendMessageToTab(MessageType.Autofill, props.hme.hme);
+    await sendMessageToTab(MessageType.Autofill, props.emaylias.email);
   };
 
   const btnClassName =
@@ -454,40 +453,40 @@ const HmeDetails = (props: {
     <div className="space-y-2">
       <div>
         <p className={labelClassName}>{chrome.i18n.getMessage("Emaylias")}</p>
-        <p title={props.hme.hme} className={valueClassName}>
-          {props.hme.isActive || (
+        <p title={props.emaylias.email} className={valueClassName}>
+          {props.emaylias.isActive || (
             <FontAwesomeIcon
               title={chrome.i18n.getMessage("Deactivated")}
               icon={faBan}
               className="text-red-500 mr-1"
             />
           )}
-          {props.hme.hme}
+          {props.emaylias.email}
         </p>
       </div>
       <div>
         <p className={labelClassName}>{chrome.i18n.getMessage("Label")}</p>
-        <p title={props.hme.label} className={valueClassName}>
-          {props.hme.label}
+        <p title={props.emaylias.label} className={valueClassName}>
+          {props.emaylias.label}
         </p>
       </div>
       <div>
         <p className={labelClassName}>{chrome.i18n.getMessage("ForwardingTo")}</p>
-        <p title={props.hme.forwardToEmail} className={valueClassName}>
-          {props.hme.forwardToEmail}
+        <p title={props.emaylias.forwardToEmail} className={valueClassName}>
+          {props.emaylias.forwardToEmail}
         </p>
       </div>
       <div>
         <p className={labelClassName}>{chrome.i18n.getMessage("CreatedAt")}</p>
         <p className={valueClassName}>
-          {new Date(props.hme.createTimestamp).toLocaleString()}
+          {new Date(props.emaylias.createTimestamp).toLocaleString()}
         </p>
       </div>
-      {props.hme.note && (
+      {props.emaylias.note && (
         <div>
           <p className={labelClassName}>{chrome.i18n.getMessage("NotesLabel")}</p>
-          <p title={props.hme.note} className={valueClassName}>
-            {props.hme.note}
+          <p title={props.emaylias.note} className={valueClassName}>
+            {props.emaylias.note}
           </p>
         </div>
       )}
@@ -508,18 +507,18 @@ const HmeDetails = (props: {
           <FontAwesomeIcon icon={faCheck} />
         </button>
         <LoadingButton
-          title={props.hme.isActive ? chrome.i18n.getMessage("Deactivate") : chrome.i18n.getMessage("Reactivate")}
+          title={props.emaylias.isActive ? chrome.i18n.getMessage("Deactivate") : chrome.i18n.getMessage("Reactivate")}
           className={`${btnClassName} ${
-            props.hme.isActive
+            props.emaylias.isActive
               ? 'bg-red-500 hover:bg-red-600 focus:ring-red-300'
               : 'bg-sky-400 hover:bg-sky-500 focus:ring-blue-300'
           }`}
           onClick={onActivationClick}
           loading={isActivateSubmitting}
         >
-          <FontAwesomeIcon icon={props.hme.isActive ? faBan : faRefresh} />
+          <FontAwesomeIcon icon={props.emaylias.isActive ? faBan : faRefresh} />
         </LoadingButton>
-        {!props.hme.isActive && (
+        {!props.emaylias.isActive && (
           <LoadingButton
             title={chrome.i18n.getMessage("Delete")}
             className={`${btnClassName} bg-red-500 hover:bg-red-600 focus:ring-red-300 col-span-3`}
@@ -537,13 +536,13 @@ const HmeDetails = (props: {
 
 const searchHmeEmails = (
   searchPrompt: string,
-  hmeEmails: HmeEmail[]
-): HmeEmail[] | undefined => {
+  emayliasList: Emaylias[]
+): Emaylias[] | undefined => {
   if (!searchPrompt) {
     return undefined;
   }
 
-  const searchEngine = new Fuse(hmeEmails, {
+  const searchEngine = new Fuse(emayliasList, {
     keys: ['label', 'hme'],
     threshold: 0.4,
   });
@@ -551,37 +550,37 @@ const searchHmeEmails = (
   return searchResults.map((result) => result.item);
 };
 
-const HmeManager = (props: {
+const EmayliasManager = (props: {
   callback: TransitionCallback<AuthenticatedAndManagingAction>;
-  client: ICloudClient;
+  client: EmaylClient;
 }) => {
-  const [fetchedHmeEmails, setFetchedHmeEmails] = useState<HmeEmail[]>();
-  const [hmeEmailsError, setHmeEmailsError] = useState<string>();
+  const [fetchedHmeEmails, setFetchedHmeEmails] = useState<Emaylias[]>();
+  const [emailsError, setEmailsError] = useState<string>();
   const [isFetching, setIsFetching] = useState(true);
-  const [selectedHmeIdx, setSelectedHmeIdx] = useState(0);
+  const [selectedIndex, setSelectedIndex] = useState(0);
   const [searchPrompt, setSearchPrompt] = useState<string>();
 
   useEffect(() => {
-    const fetchHmeList = async () => {
-      setHmeEmailsError(undefined);
+    const fetchList = async () => {
+      setEmailsError(undefined);
       setIsFetching(true);
       try {
         const pms = new PremiumMailSettings(props.client);
-        const result = await pms.listHme();
+        const result = await pms.getList();
         setFetchedHmeEmails(
-          result.hmeEmails.sort((a, b) => b.createTimestamp - a.createTimestamp)
+          result.emayliasList.sort((a, b) => b.createTimestamp - a.createTimestamp)
         );
       } catch (e) {
-        setHmeEmailsError(e.toString());
+        setEmailsError(e.toString());
       } finally {
         setIsFetching(false);
       }
     };
 
-    fetchHmeList();
+    fetchList();
   }, [props.client]);
 
-  const activationCallbackFactory = (hmeEmail: HmeEmail) => () => {
+  const activationCallbackFactory = (hmeEmail: Emaylias) => () => {
     const newHmeEmail = { ...hmeEmail, isActive: !hmeEmail.isActive };
     setFetchedHmeEmails((prevFetchedHmeEmails) =>
       prevFetchedHmeEmails?.map((item) =>
@@ -590,21 +589,21 @@ const HmeManager = (props: {
     );
   };
 
-  const deletionCallbackFactory = (hmeEmail: HmeEmail) => () => {
+  const deletionCallbackFactory = (hmeEmail: Emaylias) => () => {
     setFetchedHmeEmails((prevFetchedHmeEmails) =>
       prevFetchedHmeEmails?.filter((item) => !isEqual(item, hmeEmail))
     );
   };
 
-  const hmeListGrid = (fetchedHmeEmails: HmeEmail[]) => {
-    const hmeEmails =
+  const aliasEntryListGrid = (fetchedHmeEmails: Emaylias[]) => {
+    const emayliasList =
       searchHmeEmails(searchPrompt || '', fetchedHmeEmails) || fetchedHmeEmails;
 
-    if (selectedHmeIdx >= hmeEmails.length) {
-      setSelectedHmeIdx(hmeEmails.length - 1);
+    if (selectedIndex >= emayliasList.length) {
+      setSelectedIndex(emayliasList.length - 1);
     }
 
-    const selectedHmeEmail = hmeEmails[selectedHmeIdx];
+    const selectedHmeEmail = emayliasList[selectedIndex];
 
     const searchBox = (
       <div className="relative p-2 rounded-tl-md bg-gray-100">
@@ -618,7 +617,7 @@ const HmeManager = (props: {
           aria-label={chrome.i18n.getMessage("SearchAriaLabel")}
           onChange={(e) => {
             setSearchPrompt(e.target.value);
-            setSelectedHmeIdx(0);
+            setSelectedIndex(0);
           }}
         />
       </div>
@@ -629,20 +628,20 @@ const HmeManager = (props: {
     const btnClassName = `${btnBaseClassName} hover:bg-gray-100`;
     const selectedBtnClassName = `${btnBaseClassName} text-white bg-sky-400 font-medium`;
 
-    const labelList = hmeEmails.map((hme, idx) => (
+    const labelList = emayliasList.map((emaylias, idx) => (
       <button
         key={idx}
-        aria-current={selectedHmeIdx === idx}
+        aria-current={selectedIndex === idx}
         type="button"
-        className={idx === selectedHmeIdx ? selectedBtnClassName : btnClassName}
-        onClick={() => setSelectedHmeIdx(idx)}
+        className={idx === selectedIndex ? selectedBtnClassName : btnClassName}
+        onClick={() => setSelectedIndex(idx)}
       >
-        {hme.isActive ? (
-          hme.label
+        {emaylias.isActive ? (
+          emaylias.label
         ) : (
           <div title={chrome.i18n.getMessage("Deactivated")}>
             <FontAwesomeIcon icon={faBan} className="text-red-500 mr-1" />
-            {hme.label}
+            {emaylias.label}
           </div>
         )}
       </button>
@@ -658,13 +657,13 @@ const HmeManager = (props: {
       <div className="grid grid-cols-2" style={{ height: 398 }}>
         <div className="overflow-y-auto text-sm rounded-l-md border border-gray-200 h-full">
           <div className="sticky top-0 border-b">{searchBox}</div>
-          {hmeEmails.length === 0 && searchPrompt ? noSearchResult : labelList}
+          {emayliasList.length === 0 && searchPrompt ? noSearchResult : labelList}
         </div>
         <div className="overflow-y-auto p-2 rounded-r-md border border-l-0 border-gray-200">
           {selectedHmeEmail && (
-            <HmeDetails
+            <AliasEntryDetails
               client={props.client}
-              hme={selectedHmeEmail}
+              emaylias={selectedHmeEmail}
               activationCallback={activationCallbackFactory(selectedHmeEmail)}
               deletionCallback={deletionCallbackFactory(selectedHmeEmail)}
             />
@@ -685,15 +684,15 @@ const HmeManager = (props: {
       return <Spinner />;
     }
 
-    if (hmeEmailsError) {
-      return <ErrorMessage>{hmeEmailsError}</ErrorMessage>;
+    if (emailsError) {
+      return <ErrorMessage>{emailsError}</ErrorMessage>;
     }
 
     if (!fetchedHmeEmails || fetchedHmeEmails.length === 0) {
       return emptyState;
     }
 
-    return hmeListGrid(fetchedHmeEmails);
+    return aliasEntryListGrid(fetchedHmeEmails);
   };
 
   return (
@@ -718,12 +717,12 @@ const HmeManager = (props: {
   );
 };
 
-const constructClient = (clientState: Store['clientState']): ICloudClient => {
+const constructClient = (clientState: Store['clientState']): EmaylClient => {
   if (clientState === undefined) {
     throw new Error('Cannot construct client when client state is undefined');
   }
 
-  return new ICloudClient(clientState.setupUrl, clientState.webservices);
+  return new EmaylClient(clientState.setupUrl, clientState.webservices);
 };
 
 const transitionToNextStateElement = (
@@ -749,7 +748,7 @@ const transitionToNextStateElement = (
       const callback = (action: AuthenticatedAndManagingAction) =>
         setState(STATE_MACHINE_TRANSITIONS[state][action]);
       return (
-        <HmeManager callback={callback} client={constructClient(clientState)} />
+        <EmayliasManager callback={callback} client={constructClient(clientState)} />
       );
     }
     default: {
@@ -773,7 +772,7 @@ const Popup = () => {
     const syncClientAuthState = async () => {
       const isAuthenticated =
         clientState?.setupUrl !== undefined &&
-        (await new ICloudClient(clientState.setupUrl).isAuthenticated());
+        (await new EmaylClient(clientState.setupUrl).isAuthenticated());
 
       if (isAuthenticated) {
         setState((prevState) =>

@@ -1,5 +1,5 @@
 import browser from 'webextension-polyfill';
-import ICloudClient from './iCloudClient';
+import EmaylClient from './eMaylClient';
 import { PopupState } from './pages/Popup/stateMachine';
 
 export type Autofill = {
@@ -13,16 +13,16 @@ export type Options = {
 
 export type Store = {
   popupState: PopupState;
-  iCloudHmeOptions: Options; // TODO: rename key to options
+  options: Options;
   clientState?: {
-    setupUrl: ConstructorParameters<typeof ICloudClient>[0];
-    webservices: ConstructorParameters<typeof ICloudClient>[1];
+    setupUrl: ConstructorParameters<typeof EmaylClient>[0];
+    webservices: ConstructorParameters<typeof EmaylClient>[1];
   };
 };
 
 export const DEFAULT_STORE = {
   popupState: PopupState.SignedOut,
-  iCloudHmeOptions: {
+  options: {
     autofill: {
       button: true,
       contextMenu: true,

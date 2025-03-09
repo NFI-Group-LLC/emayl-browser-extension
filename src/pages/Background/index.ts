@@ -6,11 +6,9 @@ import {
   DEFAULT_STORE,
   Options,
 } from '../../storage';
-import ICloudClient, {
-  PremiumMailSettings,
-  DEFAULT_SETUP_URL,
-  CN_SETUP_URL,
-} from '../../iCloudClient';
+import EmaylClient, {
+  BASE_URL
+} from '../../eMaylClient';
 import {
   ActiveInputElementWriteData,
   Message,
@@ -23,32 +21,33 @@ import {
   CONTEXT_MENU_ITEM_ID,
 } from './constants';
 import { isFirefox } from '../../browserUtils';
+import { PremiumMailSettings } from '../../PremiumMailSettings';
 
-const constructClient = async (): Promise<ICloudClient> => {
+const constructClient = async (): Promise<EmaylClient> => {
   const clientState = await getBrowserStorageValue('clientState');
 
   if (clientState === undefined) {
     console.debug('constructClient: Using default setupUrl');
-    return new ICloudClient(DEFAULT_SETUP_URL);
+    return new EmaylClient(BASE_URL);
   }
 
-  return new ICloudClient(clientState.setupUrl, clientState.webservices);
+  return new EmaylClient(clientState.setupUrl, clientState.webservices);
 };
 
 const performDeauthSideEffects = () => {
   setBrowserStorageValue('popupState', DEFAULT_STORE.popupState);
   setBrowserStorageValue('clientState', DEFAULT_STORE.clientState);
 
-  browser.contextMenus
-    .update(CONTEXT_MENU_ITEM_ID, {
-      title: chrome.i18n.getMessage("SignedOut_SignInInstructions"),
-      enabled: false,
-    })
-    .catch(console.debug);
+  // browser.contextMenus
+  //   .update(CONTEXT_MENU_ITEM_ID, {
+  //     title: chrome.i18n.getMessage("SignedOut_SignInInstructions"),
+  //     enabled: false,
+  //   })
+  //   .catch(console.debug);
 };
 
 const performAuthSideEffects = (
-  client: ICloudClient,
+  client: EmaylClient,
   options: { notification?: boolean } = {}
 ) => {
   const { notification = false } = options;
@@ -85,11 +84,11 @@ browser.runtime.onMessage.addListener(async (uncastedMessage: unknown) => {
     case MessageType.GenerateRequest:
       {
         const deauthCallback = async () => {
-          await sendMessageToTab(MessageType.GenerateResponse, {
-            error: chrome.i18n.getMessage("SignedOut_SignInInstructions"),
-            elementId,
-          });
-          performDeauthSideEffects();
+          // await sendMessageToTab(MessageType.GenerateResponse, {
+          //   error: chrome.i18n.getMessage("SignedOut_SignInInstructions"),
+          //   elementId,
+          // });
+          // performDeauthSideEffects();
         };
 
         const elementId = message.data;
@@ -100,7 +99,7 @@ browser.runtime.onMessage.addListener(async (uncastedMessage: unknown) => {
           break;
         }
 
-        const client = new ICloudClient(
+        const client = new EmaylClient(
           clientState.setupUrl,
           clientState.webservices
         );
@@ -112,9 +111,9 @@ browser.runtime.onMessage.addListener(async (uncastedMessage: unknown) => {
 
         try {
           const pms = new PremiumMailSettings(client);
-          const hme = await pms.generateHme();
+          const email = await pms.generateEmail();
           await sendMessageToTab(MessageType.GenerateResponse, {
-            hme,
+            email,
             elementId,
           });
         } catch (e) {
@@ -127,8 +126,7 @@ browser.runtime.onMessage.addListener(async (uncastedMessage: unknown) => {
       break;
     case MessageType.ReservationRequest:
       {
-        const { hme, label, elementId } =
-          message.data as ReservationRequestData;
+        const { email, label, elementId } = message.data as ReservationRequestData;
         const client = await constructClient();
         // Given that the reservation step happens shortly after
         // the generation step, it is safe to assume that the client's
@@ -136,9 +134,9 @@ browser.runtime.onMessage.addListener(async (uncastedMessage: unknown) => {
         // skipping token validation.
         try {
           const pms = new PremiumMailSettings(client);
-          await pms.reserveHme(hme, label);
+          await pms.reserveEmaylias(email, label);
           await sendMessageToTab(MessageType.ReservationResponse, {
-            hme,
+            email,
             elementId,
           });
         } catch (e) {
@@ -158,8 +156,8 @@ browser.runtime.onMessage.addListener(async (uncastedMessage: unknown) => {
 
 const setupContextMenu = async () => {
   const options =
-    (await getBrowserStorageValue('iCloudHmeOptions')) ||
-    DEFAULT_STORE.iCloudHmeOptions;
+    (await getBrowserStorageValue('options')) ||
+    DEFAULT_STORE.options;
 
   browser.contextMenus.create(
     {
@@ -202,12 +200,12 @@ type OptionsStorageChange = {
 // * it hides the context menu item when the user un-checks the context menu option.
 // * it makes the context menu item visible when the user checks the context menu option.
 browser.storage.onChanged.addListener((changes, namespace) => {
-  const iCloudHmeOptions = changes['iCloudHmeOptions' as keyof Store];
-  if (namespace !== 'local' || iCloudHmeOptions === undefined) {
+  const options = changes['options' as keyof Store];
+  if (namespace !== 'local' || options === undefined) {
     return;
   }
 
-  const { oldValue, newValue } = iCloudHmeOptions as OptionsStorageChange;
+  const { oldValue, newValue } = options as OptionsStorageChange;
 
   if (oldValue?.autofill.contextMenu === newValue?.autofill.contextMenu) {
     // No change has been made to the context menu autofilling config.
@@ -215,11 +213,9 @@ browser.storage.onChanged.addListener((changes, namespace) => {
     return;
   }
 
-  browser.contextMenus
-    .update(CONTEXT_MENU_ITEM_ID, {
-      visible: newValue?.autofill.contextMenu,
-    })
-    .catch(console.debug);
+  browser.contextMenus.update(CONTEXT_MENU_ITEM_ID, {
+    visible: newValue?.autofill.contextMenu,
+  }).catch(console.debug);
 });
 
 // Upon clicking on the context menu item, we generate an email, reserve it, and emit it back to the content script
@@ -255,11 +251,11 @@ browser.contextMenus.onClicked.addListener(async (info, tab) => {
 
   try {
     const pms = new PremiumMailSettings(client);
-    const hme = await pms.generateHme();
-    await pms.reserveHme(hme, hostname);
+    const email = await pms.generateEmail();
+    await pms.reserveEmaylias(email, hostname);
     await sendMessageToTab(
       MessageType.ActiveInputElementWrite,
-      { text: hme, copyToClipboard: true } as ActiveInputElementWriteData,
+      { text: email, copyToClipboard: true } as ActiveInputElementWriteData,
       tab
     );
   } catch (e) {
@@ -276,7 +272,7 @@ browser.contextMenus.onClicked.addListener(async (info, tab) => {
 
 // ===== Non-blocking webrequest listeners (used for syncing the authentication state of the user) =====
 
-// The extension needs to be in sync with the icloud.com authentication state of the browser.
+// The extension needs to be in sync with the emayl.app authentication state of the browser.
 // For example, when the user is authenticated we need to render the context menu item
 // as enabled.
 browser.webRequest.onResponseStarted.addListener(
@@ -287,8 +283,8 @@ browser.webRequest.onResponseStarted.addListener(
       return;
     }
 
-    const setupUrl = url.split('/accountLogin')[0] as ICloudClient['setupUrl'];
-    const client = new ICloudClient(setupUrl);
+    const setupUrl = url.split('/accountLogin')[0] as EmaylClient['setupUrl'];
+    const client = new EmaylClient(setupUrl);
     const isAuthenticated = await client.isAuthenticated();
     if (isAuthenticated) {
       performAuthSideEffects(client, { notification: true });
@@ -296,14 +292,13 @@ browser.webRequest.onResponseStarted.addListener(
   },
   {
     urls: [
-      `${DEFAULT_SETUP_URL}/accountLogin*`,
-      `${CN_SETUP_URL}/accountLogin*`,
+      `${BASE_URL}/accountLogin*`,
     ],
   },
   []
 );
 
-// When the user signs out of their account through icloud.com, we should
+// When the user signs out of their account through emayl.app, we should
 // perform various side effects (e.g. disabling the context menu item)
 browser.webRequest.onResponseStarted.addListener(
   async (details: browser.WebRequest.OnResponseStartedDetailsType) => {
@@ -316,7 +311,7 @@ browser.webRequest.onResponseStarted.addListener(
     performDeauthSideEffects();
   },
   {
-    urls: [`${DEFAULT_SETUP_URL}/logout*`, `${CN_SETUP_URL}/logout*`],
+    urls: [`${BASE_URL}/logout*`],
   },
   []
 );
@@ -343,10 +338,9 @@ browser.runtime.onInstalled.addListener(
 // Present the user with a getting-started guide.
 browser.runtime.onInstalled.addListener(
   async (details: browser.Runtime.OnInstalledDetailsType) => {
-    const userguideUrl = browser.runtime.getURL('userguide.html');
-
     if (details.reason === 'install') {
-      chrome.tabs.create({ url: userguideUrl }).then(console.debug);
+      const url = browser.runtime.getURL('userguide.html');
+      chrome.tabs.create({ url }).then(console.debug);
     }
   }
 );
