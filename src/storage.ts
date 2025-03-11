@@ -1,5 +1,4 @@
 import browser from 'webextension-polyfill';
-import EmaylClient from './eMaylClient';
 import { PopupState } from './pages/Popup/stateMachine';
 
 export type Autofill = {
@@ -14,10 +13,6 @@ export type Options = {
 export type Store = {
   popupState: PopupState;
   options: Options;
-  clientState?: {
-    setupUrl: ConstructorParameters<typeof EmaylClient>[0];
-    webservices: ConstructorParameters<typeof EmaylClient>[1];
-  };
 };
 
 export const DEFAULT_STORE = {
@@ -28,7 +23,6 @@ export const DEFAULT_STORE = {
       contextMenu: true,
     },
   },
-  clientState: undefined,
 };
 
 export async function getBrowserStorageValue<K extends keyof Store>(
