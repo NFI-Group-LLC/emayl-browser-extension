@@ -121,4 +121,29 @@ export default class EmaylService {
       Promise.resolve()
     }  
   }
+
+  public async getFavIcon(domain: string): Promise<string> {
+    try {
+      // fetch the favicon url or image
+      const faviconResponse = await fetch(`https://www.google.com/s2/favicons?sz=32&domain=${domain}`, { cache: 'force-cache' })  
+      if (!faviconResponse.ok) {
+        console.log(`Failed to retrieve the favicon image for ${domain}`);
+        return Promise.reject(`Failed to retrieve the favicon image for ${domain}`);
+      }
+
+      // return URL if available
+      if (faviconResponse.url) {
+        return Promise.resolve(faviconResponse.url);
+      }
+
+      // otherwise return image
+      const imageBuffer = await faviconResponse.arrayBuffer();
+      console.log(`${domain} - imageBuffer.byteLength = ${imageBuffer.byteLength}`)
+      const base64String = Buffer.from(imageBuffer).toString("base64")
+      return Promise.resolve(`data:image/png;base64,${base64String}`);
+    } catch (error) {
+      console.error(`Error fetching favicon for ${domain}`, error);
+      return Promise.reject(`Failed to retrieve the favicon image for ${domain}`);
+    }
+  }
 }

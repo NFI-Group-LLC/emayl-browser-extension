@@ -7,6 +7,7 @@ import React, {
   ReactNode,
   ReactElement,
 } from 'react';
+import { ChakraProvider, extendTheme } from '@chakra-ui/react';
 import './Popup.css';
 import { useBrowserStorageState } from '../../useBrowserStorageState';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -46,9 +47,27 @@ import {
 } from './stateMachine';
 import { Emaylias, EmayliasAction, EmayliasState, UserProfile } from '../../types';
 import EmaylService from '../../eMaylService';
+import DomainFavIconTag from '../../DomainFavIconTag';
 // import { isFirefox } from '../../browserUtils';
 
 type TransitionCallback<T extends PopupAction> = (action: T) => void;
+
+const theme = extendTheme({
+  colors: {
+    primary: {
+      50: "#f7fff8",
+      100: "#f3fff4",
+      200: "#eefff0",
+      300: "#e9ffeb",
+      400: "#e5ffe7",
+      500: "#e0ffe3",
+      600: "#bed9c1",
+      700: "#9db29f",
+      800: "#7b8c7d",
+      900: "#5a665b",
+    }
+  }
+});
 
 const emaylService = new EmaylService();
 let userProfile: UserProfile | null = null;
@@ -444,20 +463,18 @@ const AliasEntryDetails = (props: {
   const btnClassName =
     'w-full justify-center text-white focus:ring-4 focus:outline-none font-medium rounded-lg px-2 py-3 text-center inline-flex items-center';
   const labelClassName = 'font-semibold text-sm';
-  const valueClassName = 'text-gray-500 text-sm break-words';
+  let valueClassName = 'text-sm break-words ';
+  if (props.emaylias.state == EmayliasState.ACTIVE) {
+    valueClassName += 'text-black'
+  } else {
+    valueClassName += 'text-gray-300'
+  }
 
   return (
     <div className="space-y-2">
       <div>
         <p className={labelClassName}>{chrome.i18n.getMessage("Emaylias")}</p>
         <p title={props.emaylias.emaylias} className={valueClassName}>
-          {(props.emaylias.state == EmayliasState.ACTIVE) || (
-            <FontAwesomeIcon
-              title={chrome.i18n.getMessage("Deactivated")}
-              icon={faBan}
-              className="text-red-500 mr-1"
-            />
-          )}
           {props.emaylias.emaylias}
         </p>
       </div>
@@ -645,13 +662,27 @@ const EmayliasManager = (props: {
         className={idx === selectedIndex ? selectedBtnClassName : btnClassName}
         onClick={() => setSelectedIndex(idx)}
       >
+        {/* show domains, if any, associated with this emaylias */}
+        <span className='mr-1'>
+          {emaylias.attrDomains.map((attrDomain) =>
+            <DomainFavIconTag
+              key={attrDomain.domain}
+              domain={attrDomain.domain}
+              emaylService={emaylService}
+              searchText=""
+              showBackground={false}
+              onDelete={null}
+              imageOnly
+            />
+          )}
+        </span>
+
         {(emaylias.state == EmayliasState.ACTIVE) ? (
           emaylias.label
         ) : (
-          <div title={chrome.i18n.getMessage("Deactivated")}>
-            <FontAwesomeIcon icon={faBan} className="text-red-500 mr-1" />
+          <span className='text-gray-300'>
             {emaylias.label}
-          </div>
+          </span>
         )}
       </button>
     ));
@@ -792,15 +823,17 @@ const Popup = () => {
   ]);
 
   return (
-    <div className="min-h-full flex items-center justify-center p-4">
-      <div className="max-w-md w-full">
-        {isStateLoading || !clientAuthStateSynced ? (
-          <Spinner />
-        ) : (
-          transitionToNextStateElement(state, setState)
-        )}
+    <ChakraProvider theme={theme}>
+      <div className="min-h-full flex items-center justify-center p-4">
+        <div className="max-w-md w-full">
+          {isStateLoading || !clientAuthStateSynced ? (
+            <Spinner />
+          ) : (
+            transitionToNextStateElement(state, setState)
+          )}
+        </div>
       </div>
-    </div>
+    </ChakraProvider>
   );
 };
 
