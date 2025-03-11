@@ -1,16 +1,33 @@
 // types.ts
 
-export type Emaylias = {
-  id: string;
-  domain: string;
-  forwardToEmail: string;
-  email: string;
-  isActive: boolean;
-  label: string;
-  note: string;
-  createTimestamp: number;
-  recipientMailId: string;
+export type AttrDomain = {
+  domain: string
 };
+
+export type Emaylias = {
+  attrDomains: AttrDomain[];
+  comment: string;
+  emaylias: string;
+  forwardingAddress: string;
+  label: string;
+  lastModifiedDt: string;
+  objectId: string;
+  provisionDt: string;
+  state: EmayliasState;
+};
+
+export enum EmayliasState {
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+  DELETED = 'DELETED'
+}
+
+export enum EmayliasAction {
+  ACTIVATE = 'activate', // set the state to ACTIVE; valid only for an emaylias currently in INACTIVE state
+  INACTIVATE = 'inactivate', // set the state to INACTIVE; valid on for an emaylias currently in ACTIVE state
+  DELETE = 'delete', // set the state to DELETED; valid on for an emaylias currently in INACTIVE state
+  UNDELETE = 'undelete' // for an emaylias in DELETED state, sets the new state to INACTIVE
+}
 
 export type EmayliasListResult = {
   emayliasList: Emaylias[];
@@ -29,7 +46,7 @@ export interface MFAConfig {
   totpMfa: MFAOptions
 }
 
-export interface IUser {
+export interface UserProfile {
   emailAddress: string
   familyName: string
   givenName: string

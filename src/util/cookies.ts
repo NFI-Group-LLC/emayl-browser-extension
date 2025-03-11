@@ -144,8 +144,9 @@ export const logExpiration = (prefix: string, token: string | null) => {
     const { exp } = jwtDecode(token);
     if (exp) {
       const secs = Math.floor(exp - (Date.now() / 1000))
+      console.log("logExpiration - exp =", exp, " secs =", secs)
       if (secs <= 0) {
-        console.log(prefix + " -- EXPIRED")
+        // console.log(prefix + " -- EXPIRED")
       } else {
         const hours = Math.floor(secs / 3600)
         const mins = Math.floor((secs % 3600) / 60)

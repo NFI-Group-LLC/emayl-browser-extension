@@ -8,34 +8,33 @@ import {
   TitledComponent,
 } from '../../commonComponents';
 import startCase from 'lodash.startcase';
-import isEqual from 'lodash.isequal';
+// import isEqual from 'lodash.isequal';
 import { DEFAULT_STORE } from '../../storage';
-import EmaylClient from '../../eMaylClient';
-import { PremiumMailSettings } from '../../PremiumMailSettings';
+import EmaylService from '../../eMaylService';
+import { Emaylias } from '../../types';
 
 const SelectFwdToForm = () => {
-  const [selectedFwdToEmail, setSelectedFwdToEmail] = useState<string>();
+  // const [selectedFwdToEmail, setSelectedFwdToEmail] = useState<string>();
   const [fwdToEmails, setFwdToEmails] = useState<string[]>();
   const [isFetching, setIsFetching] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [listHmeError, setListHmeError] = useState<string>();
   const [updateFwdToError, setUpdateFwdToError] = useState<string>();
-  const [clientState, setClientState, isClientStateLoading] =
-    useBrowserStorageState('clientState', undefined);
+  const [isLoading, setLoading] = useState(false)
 
   useEffect(() => {
     const fetchHmeList = async () => {
       setListHmeError(undefined);
       setIsFetching(true);
 
-      if (clientState?.setupUrl === undefined) {
+      if (isLoading) {
         setListHmeError(chrome.i18n.getMessage("OptionsError_ForwardAddrLogin"));
         setIsFetching(false);
         return;
       }
 
-      const client = new EmaylClient(clientState.setupUrl);
-      const isClientAuthenticated = await client.isAuthenticated();
+      const emaylService = new EmaylService();
+      const isClientAuthenticated = await emaylService.isAuthenticated();
       if (!isClientAuthenticated) {
         setListHmeError(chrome.i18n.getMessage("OptionsError_ForwardAddrLogin"));
         setIsFetching(false);
@@ -43,14 +42,14 @@ const SelectFwdToForm = () => {
       }
 
       try {
-        const pms = new PremiumMailSettings(client);
-        const result = await pms.getList();
-        setFwdToEmails((prevState) =>
-          isEqual(prevState, result.forwardToEmails)
-            ? prevState
-            : result.forwardToEmails
-        );
-        setSelectedFwdToEmail(result.selectedForwardTo);
+        // console.log("SelectFwdToForm - calling getList")
+        // const emayliasList: Emaylias[] = await emaylService.getList();
+        // setFwdToEmails((prevState) =>
+        //   isEqual(prevState, result.forwardToEmails)
+        //     ? prevState
+        //     : result.forwardToEmails
+        // );
+        // setSelectedFwdToEmail(result.selectedForwardTo);
       } catch (e) {
         setListHmeError(e.toString());
       } finally {
@@ -58,34 +57,25 @@ const SelectFwdToForm = () => {
       }
     };
 
-    !isClientStateLoading && fetchHmeList();
-  }, [setClientState, clientState?.setupUrl, isClientStateLoading]);
+    !isLoading && fetchHmeList();
+  }, [setLoading, isLoading]);
 
   const onSelectedFwdToSubmit = async (
     event: React.FormEvent<HTMLFormElement>
   ) => {
     event.preventDefault();
     setIsSubmitting(true);
-    if (clientState === undefined) {
-      // Entering this branch of the control flow should not be possible
-      // as the client state is validated prior to rendering the form that
-      // triggered this event handler.
-      console.error('onSelectedFwdToSubmit: clientState is undefined');
-      setUpdateFwdToError(chrome.i18n.getMessage("OptionsError_ForwardAddrLogin"));
-    } else if (selectedFwdToEmail) {
-      try {
-        const client = new EmaylClient(
-          clientState.setupUrl,
-          clientState.webservices
-        );
-        const pms = new PremiumMailSettings(client);
-        await pms.updateForwardTo(selectedFwdToEmail);
-      } catch (e) {
-        setUpdateFwdToError(e.toString());
-      }
-    } else {
+
+    // if (selectedFwdToEmail) {
+    //   try {
+    //     const emaylService = new EmaylService();
+    //     await emaylService.updateForwardTo(selectedFwdToEmail);
+    //   } catch (e) {
+    //     setUpdateFwdToError(e.toString());
+    //   }
+    // } else {
       setUpdateFwdToError('No Forward To address has been selected.');
-    }
+    // }
     setIsSubmitting(false);
   };
 
@@ -102,8 +92,8 @@ const SelectFwdToForm = () => {
       {fwdToEmails?.map((fwdToEmail, key) => (
         <div className="flex items-center mb-3" key={key}>
           <input
-            onChange={() => setSelectedFwdToEmail(fwdToEmail)}
-            checked={fwdToEmail === selectedFwdToEmail}
+            // onChange={() => setSelectedFwdToEmail(fwdToEmail)}
+            // checked={fwdToEmail === selectedFwdToEmail}
             id={`radio-${key}`}
             type="radio"
             disabled={isSubmitting}

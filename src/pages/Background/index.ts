@@ -6,9 +6,6 @@ import {
   DEFAULT_STORE,
   Options,
 } from '../../storage';
-import EmaylClient, {
-  BASE_URL
-} from '../../eMaylClient';
 import {
   ActiveInputElementWriteData,
   Message,
@@ -21,22 +18,12 @@ import {
   CONTEXT_MENU_ITEM_ID,
 } from './constants';
 import { isFirefox } from '../../browserUtils';
-import { PremiumMailSettings } from '../../PremiumMailSettings';
+import EmaylService from '../../eMaylService';
 
-const constructClient = async (): Promise<EmaylClient> => {
-  const clientState = await getBrowserStorageValue('clientState');
-
-  if (clientState === undefined) {
-    console.debug('constructClient: Using default setupUrl');
-    return new EmaylClient(BASE_URL);
-  }
-
-  return new EmaylClient(clientState.setupUrl, clientState.webservices);
-};
+const emaylService = new EmaylService();
 
 const performDeauthSideEffects = () => {
   setBrowserStorageValue('popupState', DEFAULT_STORE.popupState);
-  setBrowserStorageValue('clientState', DEFAULT_STORE.clientState);
 
   // browser.contextMenus
   //   .update(CONTEXT_MENU_ITEM_ID, {
@@ -46,16 +33,8 @@ const performDeauthSideEffects = () => {
   //   .catch(console.debug);
 };
 
-const performAuthSideEffects = (
-  client: EmaylClient,
-  options: { notification?: boolean } = {}
-) => {
+const performAuthSideEffects = (options: { notification?: boolean } = {}) => {
   const { notification = false } = options;
-
-  setBrowserStorageValue('clientState', {
-    setupUrl: client.setupUrl,
-    webservices: client.webservices,
-  });
 
   browser.contextMenus
     .update(CONTEXT_MENU_ITEM_ID, {
@@ -93,27 +72,16 @@ browser.runtime.onMessage.addListener(async (uncastedMessage: unknown) => {
 
         const elementId = message.data;
 
-        const clientState = await getBrowserStorageValue('clientState');
-        if (clientState === undefined) {
-          await deauthCallback();
-          break;
-        }
-
-        const client = new EmaylClient(
-          clientState.setupUrl,
-          clientState.webservices
-        );
-        const isClientAuthenticated = await client.isAuthenticated();
+        const isClientAuthenticated = await emaylService.isAuthenticated();
         if (!isClientAuthenticated) {
           await deauthCallback();
           break;
         }
 
         try {
-          const pms = new PremiumMailSettings(client);
-          const email = await pms.generateEmail();
+          const emails: string[] = await emaylService.generateEmails();
           await sendMessageToTab(MessageType.GenerateResponse, {
-            email,
+            email: emails[0],
             elementId,
           });
         } catch (e) {
@@ -127,14 +95,13 @@ browser.runtime.onMessage.addListener(async (uncastedMessage: unknown) => {
     case MessageType.ReservationRequest:
       {
         const { email, label, elementId } = message.data as ReservationRequestData;
-        const client = await constructClient();
+
         // Given that the reservation step happens shortly after
         // the generation step, it is safe to assume that the client's
         // auth state has been recently validated. Hence, we are
         // skipping token validation.
         try {
-          const pms = new PremiumMailSettings(client);
-          await pms.reserveEmaylias(email, label);
+          await emaylService.reserveEmaylias(email, label);
           await sendMessageToTab(MessageType.ReservationResponse, {
             email,
             elementId,
@@ -168,10 +135,9 @@ const setupContextMenu = async () => {
       visible: options.autofill.contextMenu,
     },
     async () => {
-      const client = await constructClient();
-      const isAuthenticated = await client.isAuthenticated();
+      const isAuthenticated = await emaylService.isAuthenticated();
       if (isAuthenticated) {
-        performAuthSideEffects(client);
+        performAuthSideEffects();
       } else {
         performDeauthSideEffects();
       }
@@ -233,8 +199,7 @@ browser.contextMenus.onClicked.addListener(async (info, tab) => {
   const serializedUrl = info.pageUrl || tab?.url;
   const hostname = serializedUrl ? new URL(serializedUrl).hostname : '';
 
-  const client = await constructClient();
-  const isClientAuthenticated = await client.isAuthenticated();
+  const isClientAuthenticated = await emaylService.isAuthenticated();
 
   if (!isClientAuthenticated) {
     sendMessageToTab(
@@ -250,12 +215,11 @@ browser.contextMenus.onClicked.addListener(async (info, tab) => {
   }
 
   try {
-    const pms = new PremiumMailSettings(client);
-    const email = await pms.generateEmail();
-    await pms.reserveEmaylias(email, hostname);
+    const emails = await emaylService.generateEmails();
+    await emaylService.reserveEmaylias(emails[0], hostname);
     await sendMessageToTab(
       MessageType.ActiveInputElementWrite,
-      { text: email, copyToClipboard: true } as ActiveInputElementWriteData,
+      { text: emails[0], copyToClipboard: true } as ActiveInputElementWriteData,
       tab
     );
   } catch (e) {
@@ -275,46 +239,44 @@ browser.contextMenus.onClicked.addListener(async (info, tab) => {
 // The extension needs to be in sync with the emayl.app authentication state of the browser.
 // For example, when the user is authenticated we need to render the context menu item
 // as enabled.
-browser.webRequest.onResponseStarted.addListener(
-  async (details: browser.WebRequest.OnResponseStartedDetailsType) => {
-    const { statusCode, url } = details;
-    if (statusCode < 200 && statusCode > 299) {
-      console.debug('Request failed', details);
-      return;
-    }
+// browser.webRequest.onResponseStarted.addListener(
+//   async (details: browser.WebRequest.OnResponseStartedDetailsType) => {
+//     const { statusCode, url } = details;
+//     if (statusCode < 200 && statusCode > 299) {
+//       console.debug('Request failed', details);
+//       return;
+//     }
 
-    const setupUrl = url.split('/accountLogin')[0] as EmaylClient['setupUrl'];
-    const client = new EmaylClient(setupUrl);
-    const isAuthenticated = await client.isAuthenticated();
-    if (isAuthenticated) {
-      performAuthSideEffects(client, { notification: true });
-    }
-  },
-  {
-    urls: [
-      `${BASE_URL}/accountLogin*`,
-    ],
-  },
-  []
-);
+//     const isAuthenticated = await emaylService.isAuthenticated();
+//     if (isAuthenticated) {
+//       performAuthSideEffects({ notification: true });
+//     }
+//   },
+//   {
+//     urls: [
+//       `${BASE_URL}/accountLogin*`,
+//     ],
+//   },
+//   []
+// );
 
-// When the user signs out of their account through emayl.app, we should
-// perform various side effects (e.g. disabling the context menu item)
-browser.webRequest.onResponseStarted.addListener(
-  async (details: browser.WebRequest.OnResponseStartedDetailsType) => {
-    const { statusCode } = details;
-    if (statusCode < 200 && statusCode > 299) {
-      console.debug('Request failed', details);
-      return;
-    }
+// // When the user signs out of their account through emayl.app, we should
+// // perform various side effects (e.g. disabling the context menu item)
+// browser.webRequest.onResponseStarted.addListener(
+//   async (details: browser.WebRequest.OnResponseStartedDetailsType) => {
+//     const { statusCode } = details;
+//     if (statusCode < 200 && statusCode > 299) {
+//       console.debug('Request failed', details);
+//       return;
+//     }
 
-    performDeauthSideEffects();
-  },
-  {
-    urls: [`${BASE_URL}/logout*`],
-  },
-  []
-);
+//     performDeauthSideEffects();
+//   },
+//   {
+//     urls: [`${BASE_URL}/logout*`],
+//   },
+//   []
+// );
 
 // ===== Post installation hooks =====
 
@@ -324,10 +286,9 @@ browser.webRequest.onResponseStarted.addListener(
 browser.runtime.onInstalled.addListener(
   async (details: browser.Runtime.OnInstalledDetailsType) => {
     if (['install', 'update'].includes(details.reason)) {
-      const client = await constructClient();
-      const isAuthenticated = await client.isAuthenticated();
+      const isAuthenticated = await emaylService.isAuthenticated();
       if (isAuthenticated) {
-        performAuthSideEffects(client, { notification: true });
+        performAuthSideEffects({ notification: true });
       } else {
         performDeauthSideEffects();
       }

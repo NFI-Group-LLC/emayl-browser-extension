@@ -1,4 +1,4 @@
-import { BASE_URL } from "../eMaylClient"
+import { BASE_URL } from "../eMaylService"
 import { ICookie } from "../types"
 import { getLargeCookie, isTokenExpired, logExpiration, wrapCookie } from "./cookies"
 

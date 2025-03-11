@@ -125,13 +125,8 @@
     },
 
     "CreateScreenSubtitle": {
-        "message": "Create an eMaylias for $DOMAIN$",
-        "description": "",
-        "placeholders": {
-            "domain": {
-                "content": "$1"
-            }
-        }
+        "message": "Create an eMaylias",
+        "description": ""
     },
     "ForwardTo": {
         "message": "Forwards to: $email$",
@@ -147,19 +142,23 @@
         "description": ""
     },
     "Emaylias": {
-        "message": "eMaylias",
+        "message": "eMaylias:",
         "description": ""
     },
     "Label": {
-        "message": "Label",
+        "message": "Label:",
         "description": ""
     },
     "ForwardingTo": {
-        "message": "Forwarding to",
+        "message": "Forwarding to:",
         "description": ""
     },
     "CreatedAt": {
-        "message": "Created at",
+        "message": "Created:",
+        "description": ""
+    },
+    "LastModifiedAt": {
+        "message": "Last Modified:",
         "description": ""
     },
     "Autofill": {
