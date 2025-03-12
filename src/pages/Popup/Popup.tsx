@@ -37,7 +37,6 @@ import {
 
 import browser from 'webextension-polyfill';
 import Fuse from 'fuse.js';
-import isEqual from 'lodash.isequal';
 import {
   PopupAction,
   PopupState,
@@ -329,7 +328,7 @@ const EmayliasEditComponent = (props: {
           const changeRecord: ChangeEmayliasRequest = { 
             emaylias: selectedEmail,
             label,
-            comment: note,
+            comment: note ?? "",
             forwardingEmailAddress: userProfile.emailAddress,
             attrDomains: parseDomains(domains),
             state: EmayliasState.ACTIVE
@@ -337,7 +336,6 @@ const EmayliasEditComponent = (props: {
       
           // create a new emaylias
           const emayliasSaved = await emaylService.createEmaylias(changeRecord);
-          console.log("emaylias created:", emayliasSaved)
           setSavedEmaylias(emayliasSaved)
 
           // copy the new email address to the clipboard
@@ -763,14 +761,16 @@ const EmayliasManager = (props: {
       setEmailsError(undefined);
       setIsFetching(true);
       try {
-        const emayliasList: EmayliasRecord[] = await emaylService.getList();
-        console.log(`EmayliasManager returned ${emayliasList.length} emaylias`)
-        setFetchedList(
-          emayliasList.sort((a, b) => b.provisionDt < a.provisionDt ? -1 : 1)
-        );
+        const [list, profile] = await Promise.all([
+          emaylService.getList(),
+          emaylService.getProfile()
+        ]);
 
-        userProfile = await emaylService.getProfile()
-        console.log("userProfile = ", userProfile)
+        console.log(`EmayliasManager returned ${list.length} emaylias`)
+        setFetchedList(
+          list.sort((a, b) => b.provisionDt < a.provisionDt ? -1 : 1)
+        );
+        userProfile = profile;
       } catch (e) {
         setEmailsError(e.toString());
       } finally {
@@ -786,16 +786,15 @@ const EmayliasManager = (props: {
       ...emaylias, 
       state: emaylias.state == EmayliasState.ACTIVE ? EmayliasState.INACTIVE : EmayliasState.ACTIVE
     };
-    setFetchedList((prevFetchedList) =>
-      prevFetchedList?.map((item) =>
-        isEqual(item, emaylias) ? newEmaylias : item
-      )
+    setFetchedList((prevList) =>
+      prevList?.map((itm) => itm.objectId == emaylias.objectId ? newEmaylias : itm)
     );
   };
 
   const deletionCallbackFactory = (emaylias: EmayliasRecord) => () => {
-    setFetchedList((prevFetchedList) =>
-      prevFetchedList?.filter((item) => !isEqual(item, emaylias))
+    // remove emaylias from the cached list
+    setFetchedList((prevList) =>
+      prevList?.filter((itm) => itm.objectId != emaylias.objectId)
     );
   };
 

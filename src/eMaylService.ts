@@ -163,8 +163,6 @@ export default class EmaylService {
   }
 
   public async createEmaylias(createRequestObj: ChangeEmayliasRequest): Promise<EmayliasRecord> {
-    console.log("createEmaylias - obj =", createRequestObj)
-    console.log("createEmaylias - JSON.stringify(obj) =", JSON.stringify(createRequestObj))
     try {
       const tokensAndHeaders = await ensureTokensAreNotExpired()  
       const res = await fetch(`${BASE_URL}/emaylias`, {
@@ -176,14 +174,12 @@ export default class EmaylService {
           'Authorization': `Bearer ${tokensAndHeaders.tokens.accessToken}`
         }
       })
-      console.log("createEmaylias - res.ok =", res.ok)
 
       const jsonRes = await res.json()
       if (!res.ok) {
         console.log("!res.ok - error:", res.status, " - jsonRes =", jsonRes)
         return Promise.reject(res.statusText);
       }
-      console.log("createEmaylias - jsonRes =", jsonRes)
       const emayliasRecord: EmayliasRecord = jsonRes;
       return Promise.resolve(emayliasRecord);
     } catch (e) {

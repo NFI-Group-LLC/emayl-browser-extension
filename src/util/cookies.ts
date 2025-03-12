@@ -62,7 +62,6 @@ export const getLargeCookie = (): Promise<string> => {
           // console.log(`countStr: ${countStr}`);
           const numChunks = parseInt(countStr) || 0;
           if (numChunks === 0) {
-            console.log("**** getLargeCookie - numChunks == 0");
             reject(Error("invalid cookie count or chunk is zero"));
             return;
           }
@@ -71,7 +70,7 @@ export const getLargeCookie = (): Promise<string> => {
             const chunkName = `${COOKIE_PREFIX}-auth-chunk-${i}`            
             const chunkCookie = cookies.filter(cookie => cookie.name == chunkName);
             if (!chunkCookie.length) {
-              console.log("**** getLargeCookie - unable to finc chunk", chunkName);
+              console.log("**** getLargeCookie - unable to find chunk", chunkName);
               reject(Error("Invalid cookie count or missing chunk"));
               return;
             }
