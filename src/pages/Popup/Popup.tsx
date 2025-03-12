@@ -45,10 +45,11 @@ import {
   STATE_MACHINE_TRANSITIONS,
   AuthenticatedAndManagingAction,
 } from './stateMachine';
-import { Emaylias, EmayliasAction, EmayliasState, UserProfile } from '../../types';
+import { EmayliasRecord, EmayliasAction, EmayliasState, UserProfile, ChangeEmayliasRequest } from '../../types';
 import EmaylService from '../../eMaylService';
 import DomainFavIconTag from '../../DomainFavIconTag';
 import { checkForDomainError, DomainError } from '../../util/validation';
+import { parseDomains } from '../../util/utils';
 // import { isFirefox } from '../../browserUtils';
 
 type TransitionCallback<T extends PopupAction> = (action: T) => void;
@@ -222,6 +223,7 @@ const EmayliasEditComponent = (props: {
   const [isUseSubmitting, setIsUseSubmitting] = useState(false);
   const [tabHost, setTabHost] = useState('');
   const [fwdToEmail, setFwdToEmail] = useState<string>();
+  const [savedEmaylias, setSavedEmaylias] = useState<EmayliasRecord | null>(null)
 
   const [note, setNote] = useState<string>();
   const [label, setLabel] = useState<string>("");
@@ -256,14 +258,11 @@ const EmayliasEditComponent = (props: {
       setIsRetrievingEmails(true);
       try {
         const generatedEmails = await emaylService.generateEmails();
-        console.log("Popup - fetchEmails - emails generated:", generatedEmails)
         setEmails(generatedEmails);
         setSelectedEmail(generatedEmails[0])
-        console.log("Popup - fetchEmails - selected email =", generatedEmails[0])
 
         if (!userProfile) {
           userProfile = await emaylService.getProfile()
-          console.log("userProfile = ", userProfile)
         }
         setFwdToEmail(userProfile.emailAddress)
       } catch (e) {
@@ -299,13 +298,11 @@ const EmayliasEditComponent = (props: {
     if (emails?.length && selectedEmail) {
       const index = emails.indexOf(selectedEmail)
       const email = emails[ index < emails.length - 1 ? index + 1 : 0]
-      console.log("selected email =", email)
       setSelectedEmail(email)
     }
   };
 
   const onUseSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    console.log("onUseSubmit")
     event.preventDefault();
     setIsUseSubmitting(true);
 
@@ -316,32 +313,55 @@ const EmayliasEditComponent = (props: {
       // validate label
       if (isLabelErr) {
         setLabelError(chrome.i18n.getMessage("LabelValidationMinLength"));
-        console.log("label error")
       } else {
         setLabelError(null)
-        console.log("no label error")
       }
 
       // validate domains
       if (domain.length && domErr != DomainError.None) {
         setDomainError(domErr)
-        console.log("domain error:", domErr)
       } else {
         setDomainError(DomainError.None)
-        console.log("no domain error")
       }
 
-      if (!isLabelErr && (!domain.length || domErr == DomainError.None)) {
-        console.log("save now")
+      if (!isLabelErr && (!domain.length || domErr == DomainError.None) && selectedEmail && userProfile) {
+        try {
+          const changeRecord: ChangeEmayliasRequest = { 
+            emaylias: selectedEmail,
+            label,
+            comment: note,
+            forwardingEmailAddress: userProfile.emailAddress,
+            attrDomains: parseDomains(domains),
+            state: EmayliasState.ACTIVE
+          }
+      
+          // create a new emaylias
+          const emayliasSaved = await emaylService.createEmaylias(changeRecord);
+          console.log("emaylias created:", emayliasSaved)
+          setSavedEmaylias(emayliasSaved)
 
-        // on success, clear label, domain and notes
+          // copy the new email address to the clipboard
+          if (typeof window !== 'undefined' && navigator.clipboard) {
+            navigator.clipboard.writeText(emayliasSaved.emaylias)
+          }
+
+          // on success, clear label, domain and notes
+          setLabel("");
+          setDomain("")
+          setDomains([])
+          setNote("")
+
+          // toast({
+          //   description: i18n.t("EmayliasModalView_SuccessNew", { label: values.label }),
+          //   status: 'success'
+          // })
+
+          // // give the list a chance to add the new record before setting the record to scroll to
+          // setTimeout(() => setEmayliasRecord(createResponse), 500)
+        } catch (e) {
+          console.log("error trying to create eMaylias:", e.toString())
+        }    
       }
-      //   setReservedHme(
-      //     await pms.reserveHme(hmeEmail, label || tabHost, note || undefined)
-      //   );
-      //   setLabel(undefined);
-      //   setNote(undefined);
-      // }
     }
     setIsUseSubmitting(false);
   };
@@ -425,10 +445,8 @@ const EmayliasEditComponent = (props: {
               setDomainError(DomainError.None)
             }}
             onKeyDown={(e) => {
-              console.log("onKeydown:", e.key)
               // validate and add domain if user hits enter and input not empty
               if (e.key == 'Enter' && e.currentTarget.value.length > 0) {
-                console.log("onKeydown - about to call handleAddDomain -", domain)
                 handleAddDomain(domain)
                 e.preventDefault()
                 e.stopPropagation()
@@ -501,7 +519,10 @@ const EmayliasEditComponent = (props: {
                 value={label || ''}
                 autoComplete='off'
                 autoCorrect='off'
-                onChange={(e) => setLabel(e.target.value)}
+                onChange={(e) => {
+                  setLabel(e.target.value)
+                  setLabelError(null)
+                }}
                 className={reservationFormInputClassName}
                 disabled={isReservationFormDisabled}
               />
@@ -540,11 +561,11 @@ const EmayliasEditComponent = (props: {
               loading={isUseSubmitting}
               disabled={isReservationFormDisabled}
             >
-              Use
+              {chrome.i18n.getMessage("EmaylView_SubmitLabel")}
             </LoadingButton>
             {emayliasError && <ErrorMessage>{emayliasError}</ErrorMessage>}
           </form>
-          {/* {selectedEmail && <ReservationResult email={selectedEmail} />} */}
+          {savedEmaylias && <ReservationResult email={savedEmaylias.emaylias} />}
         </div>
       )}
       <div className="grid grid-cols-2">
@@ -564,7 +585,7 @@ const EmayliasEditComponent = (props: {
 };
 
 const AliasEntryDetails = (props: {
-  emaylias: Emaylias;
+  emaylias: EmayliasRecord;
   emayliasService: EmaylService;
   activationCallback: () => void;
   deletionCallback: () => void;
@@ -713,8 +734,8 @@ const AliasEntryDetails = (props: {
 
 const searchHmeEmails = (
   searchPrompt: string,
-  emayliasList: Emaylias[]
-): Emaylias[] | undefined => {
+  emayliasList: EmayliasRecord[]
+): EmayliasRecord[] | undefined => {
   if (!searchPrompt) {
     return undefined;
   }
@@ -731,7 +752,7 @@ const EmayliasManager = (props: {
   callback: TransitionCallback<AuthenticatedAndManagingAction>;
   emayliasService: EmaylService;
 }) => {
-  const [fetchedList, setFetchedList] = useState<Emaylias[]>();
+  const [fetchedList, setFetchedList] = useState<EmayliasRecord[]>();
   const [emailsError, setEmailsError] = useState<string>();
   const [isFetching, setIsFetching] = useState(true);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -742,7 +763,7 @@ const EmayliasManager = (props: {
       setEmailsError(undefined);
       setIsFetching(true);
       try {
-        const emayliasList: Emaylias[] = await emaylService.getList();
+        const emayliasList: EmayliasRecord[] = await emaylService.getList();
         console.log(`EmayliasManager returned ${emayliasList.length} emaylias`)
         setFetchedList(
           emayliasList.sort((a, b) => b.provisionDt < a.provisionDt ? -1 : 1)
@@ -760,7 +781,7 @@ const EmayliasManager = (props: {
     fetchData();
   }, [props.emayliasService]);
 
-  const activationCallbackFactory = (emaylias: Emaylias) => () => {
+  const activationCallbackFactory = (emaylias: EmayliasRecord) => () => {
     const newEmaylias = { 
       ...emaylias, 
       state: emaylias.state == EmayliasState.ACTIVE ? EmayliasState.INACTIVE : EmayliasState.ACTIVE
@@ -772,13 +793,13 @@ const EmayliasManager = (props: {
     );
   };
 
-  const deletionCallbackFactory = (emaylias: Emaylias) => () => {
+  const deletionCallbackFactory = (emaylias: EmayliasRecord) => () => {
     setFetchedList((prevFetchedList) =>
       prevFetchedList?.filter((item) => !isEqual(item, emaylias))
     );
   };
 
-  const aliasEntryListGrid = (fetchedHmeEmails: Emaylias[]) => {
+  const aliasEntryListGrid = (fetchedHmeEmails: EmayliasRecord[]) => {
     const emayliasList =
       searchHmeEmails(searchPrompt || '', fetchedHmeEmails) || fetchedHmeEmails;
 

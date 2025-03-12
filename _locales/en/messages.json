@@ -145,6 +145,10 @@
         "message": "There are no eMaylias to list",
         "description": ""
     },
+    "EmaylView_SubmitLabel": {
+        "message": "Save eMaylias",
+        "description": "forward CTA button label"
+    },
     "SearchNoResults": {
         "message": "No eMaylias matches for \"$TEXT$\"",
         "description": "",
@@ -189,7 +193,7 @@
         "description": ""
     },
     "Label": {
-        "message": "Label:",
+        "message": "Label",
         "description": ""
     },
     "ForwardingTo": {

@@ -56,7 +56,7 @@ const DomainFavIconTag = ({ domain, emaylService, searchText, showBackground, on
         <Image
           src={imageSrc}
           alt={""}
-          className={imageOnly ? 'w-6 mr-0.5' : 'inline-block mr-1.5 mb-1 w-6 h-6'}
+          className={imageOnly ? 'w-6 mr-0.5' : 'inline-block mr-1.5 w-6 h-6'}
         />
       ) : (
         <span className={imageOnly ? 'w-6 mr-0.5' : 'inline-flex place-items-center mr-2 mb-1'}>
@@ -64,7 +64,7 @@ const DomainFavIconTag = ({ domain, emaylService, searchText, showBackground, on
         </span>
       )}
       {!imageOnly && (
-        <span className='inline-flex mb-1 max-w-80 text-sm place-items-center'>
+        <span className='inline-flex max-w-80 text-sm place-items-center'>
           <Highlight
             query={showBackground ? "" : searchText ?? ""}
             styles={{ color: 'green', textDecor: 'wavy underline' }}
