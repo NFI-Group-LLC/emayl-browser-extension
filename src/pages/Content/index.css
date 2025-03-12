@@ -1,19 +1,19 @@
-.d1691f0f-b8f0-495e-9ffb-fe4e6f84b518-button {
+.7a4e8d3c-6b2f-4e91-a5f9-d8c7b3f2e140-button {
   @apply bg-sky-400 text-white w-full rounded p-2 my-1 font-sans font-medium;
 }
 
-.d1691f0f-b8f0-495e-9ffb-fe4e6f84b518-hover-button {
+.7a4e8d3c-6b2f-4e91-a5f9-d8c7b3f2e140-hover-button {
   @apply hover:bg-sky-500;
 }
 
-.d1691f0f-b8f0-495e-9ffb-fe4e6f84b518-cursor-not-allowed {
+.7a4e8d3c-6b2f-4e91-a5f9-d8c7b3f2e140-cursor-not-allowed {
   @apply cursor-not-allowed;
 }
 
-.d1691f0f-b8f0-495e-9ffb-fe4e6f84b518-cursor-progress {
+.7a4e8d3c-6b2f-4e91-a5f9-d8c7b3f2e140-cursor-progress {
   @apply cursor-progress;
 }
 
-.d1691f0f-b8f0-495e-9ffb-fe4e6f84b518-cursor-pointer {
+.7a4e8d3c-6b2f-4e91-a5f9-d8c7b3f2e140-cursor-pointer {
   @apply cursor-pointer;
 }

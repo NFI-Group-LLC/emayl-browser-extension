@@ -17,7 +17,7 @@ const EMAIL_INPUT_QUERY_STRING =
 // A unique CSS class prefix is used to guarantee that the style injected
 // by the extension does not interfere with the existing style of
 // a web page.
-const STYLE_CLASS_PREFIX = 'd1691f0f-b8f0-495e-9ffb-fe4e6f84b518';
+const STYLE_CLASS_PREFIX = '7a4e8d3c-6b2f-4e91-a5f9-d8c7b3f2e140';
 
 const className = (shortName: string): string =>
   `${STYLE_CLASS_PREFIX}-${shortName}`;
@@ -141,7 +141,7 @@ export default async function main(): Promise<void> {
     buttonSupport:
       options?.autofill.button === false
         ? undefined
-        : undefined // makeButtonSupport(inputElement),
+        : makeButtonSupport(inputElement),
   });
 
   const autofillableInputElements = Array.from(emailInputElements).map(
