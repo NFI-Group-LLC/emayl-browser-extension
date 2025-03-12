@@ -81,13 +81,28 @@ export default class EmaylService {
     }  
   };
 
-  // TODO: This is probably not needed
-  reserveEmaylias(email: string, label: string) {
-    throw new Error('Method not implemented.');
-  }
-
-  generateEmails(): string[] | PromiseLike<string[]> {
-    throw new Error('Method not implemented.');
+  public async generateEmails(): Promise<string[]> {
+    try {
+      const tokensAndHeaders = await ensureTokensAreNotExpired()  
+      const res = await fetch(`${BASE_URL}/emaylias/random/multi`, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${tokensAndHeaders.tokens.accessToken}`
+        }
+      })
+  
+      if (!res.ok) {
+        console.log("!res.ok - error:", res.status)
+        return Promise.reject(res.statusText);
+      }
+      const emails: string[] = (await res.json()).emaylias;
+      return Promise.resolve(emails)
+    } catch(e) {
+      console.log("**** POST randomize error redirecting to Login:", e)
+      return Promise.reject(e.toString())
+    }
   }
 
   public async isAuthenticated(): Promise<boolean> {

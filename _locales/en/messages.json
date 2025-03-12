@@ -85,6 +85,50 @@
         "message": "Help",
         "description": ""
     },
+    "LabelValidationMinLength": {
+        "message": "Label must be at least 3 characters long",
+        "description": ""
+    },
+    "DomainsLabel": {
+        "message": "Domains",
+        "description": ""
+    },
+    "DomainsPlaceholder": {
+        "message": "Enter one or more domains",
+        "description": ""
+    },
+    "DomainError_AlreadyInUse": {
+        "message": "Domain is already added",
+        "description": ""
+    },
+    "DomainError_ConsecutiveDots": {
+        "message": "Domain must not contain consecutive periods",
+        "description": ""
+    },
+    "DomainError_InvalidChars": {
+        "message": "Domain contains invalid characters",
+        "description": ""
+    },
+    "DomainError_MaxDomainLength": {
+        "message": "Domain is over the maximum length of 253 characters",
+        "description": ""
+    },
+    "DomainError_MaxLabelLength": {
+        "message": "Domain part is over the maximum length of 63 characters",
+        "description": ""
+    },
+    "DomainError_MinLastLabelLength": {
+        "message": "Last part of domain cannot be less than 2 characters",
+        "description": ""
+    },
+    "DomainError_NotEnoughSections": {
+        "message": "Domain must contain at least 2 sections",
+        "description": ""
+    },
+    "DomainError_StartOrEndWithDotOrDash": {
+        "message": "Domain must not start or end with a period or a dash",
+        "description": ""
+    },
     "NotesLabel": {
         "message": "Notes",
         "description": ""
@@ -93,7 +137,6 @@
         "message": "Make a note (optional)",
         "description": ""
     },
-
     "GenerateNewEntry": {
         "message": "Generate new eMaylias",
         "description": ""
@@ -186,7 +229,7 @@
         "description": ""
     },
     "EmayliasCreated": {
-        "message": "has successfully been created.",
+        "message": "has successfully been created and copied to the clipboard.",
         "description": ""
     },
     "GoToLoginSite": {
