@@ -1,4 +1,4 @@
-import { Emaylias, EmayliasAction, EmayliasListResult, UserProfile } from "./types";
+import { EmayliasRecord, EmayliasAction, EmayliasListResult, UserProfile, ChangeEmayliasRequest } from "./types";
 import { removeAllCookies } from "./util/cookies";
 import { ensureTokensAreNotExpired } from "./util/refreshTokens";
 
@@ -57,7 +57,7 @@ export default class EmaylService {
   /**
    * Get array of Emaylias objects, if user is authenticated
    */
-  public getList = async (): Promise<Emaylias[]> => {
+  public getList = async (): Promise<EmayliasRecord[]> => {
     console.log("eMayliasService::getList")
     try {
       const tokensAndHeaders = await ensureTokensAreNotExpired()
@@ -81,13 +81,28 @@ export default class EmaylService {
     }  
   };
 
-  // TODO: This is probably not needed
-  reserveEmaylias(email: string, label: string) {
-    throw new Error('Method not implemented.');
-  }
-
-  generateEmails(): string[] | PromiseLike<string[]> {
-    throw new Error('Method not implemented.');
+  public async generateEmails(): Promise<string[]> {
+    try {
+      const tokensAndHeaders = await ensureTokensAreNotExpired()  
+      const res = await fetch(`${BASE_URL}/emaylias/random/multi`, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${tokensAndHeaders.tokens.accessToken}`
+        }
+      })
+  
+      if (!res.ok) {
+        console.log("!res.ok - error:", res.status)
+        return Promise.reject(res.statusText);
+      }
+      const emails: string[] = (await res.json()).emaylias;
+      return Promise.resolve(emails)
+    } catch(e) {
+      console.log("**** POST randomize error redirecting to Login:", e)
+      return Promise.reject(e.toString())
+    }
   }
 
   public async isAuthenticated(): Promise<boolean> {
@@ -145,5 +160,31 @@ export default class EmaylService {
       console.error(`Error fetching favicon for ${domain}`, error);
       return Promise.reject(`Failed to retrieve the favicon image for ${domain}`);
     }
+  }
+
+  public async createEmaylias(createRequestObj: ChangeEmayliasRequest): Promise<EmayliasRecord> {
+    try {
+      const tokensAndHeaders = await ensureTokensAreNotExpired()  
+      const res = await fetch(`${BASE_URL}/emaylias`, {
+        method: 'POST',
+        body: JSON.stringify(createRequestObj),
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${tokensAndHeaders.tokens.accessToken}`
+        }
+      })
+
+      const jsonRes = await res.json()
+      if (!res.ok) {
+        console.log("!res.ok - error:", res.status, " - jsonRes =", jsonRes)
+        return Promise.reject(res.statusText);
+      }
+      const emayliasRecord: EmayliasRecord = jsonRes;
+      return Promise.resolve(emayliasRecord);
+    } catch (e) {
+      console.log("**** POST emaylias error - Unauthorized:", e)
+      return Promise.reject(e.toString());
+    }  
   }
 }

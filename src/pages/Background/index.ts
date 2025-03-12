@@ -80,6 +80,7 @@ browser.runtime.onMessage.addListener(async (uncastedMessage: unknown) => {
 
         try {
           const emails: string[] = await emaylService.generateEmails();
+          console.log("background - GenerateRequest: emails generated:", emails)
           await sendMessageToTab(MessageType.GenerateResponse, {
             email: emails[0],
             elementId,
@@ -94,14 +95,9 @@ browser.runtime.onMessage.addListener(async (uncastedMessage: unknown) => {
       break;
     case MessageType.ReservationRequest:
       {
-        const { email, label, elementId } = message.data as ReservationRequestData;
+        const { email, elementId } = message.data as ReservationRequestData;
 
-        // Given that the reservation step happens shortly after
-        // the generation step, it is safe to assume that the client's
-        // auth state has been recently validated. Hence, we are
-        // skipping token validation.
         try {
-          await emaylService.reserveEmaylias(email, label);
           await sendMessageToTab(MessageType.ReservationResponse, {
             email,
             elementId,
@@ -216,7 +212,8 @@ browser.contextMenus.onClicked.addListener(async (info, tab) => {
 
   try {
     const emails = await emaylService.generateEmails();
-    await emaylService.reserveEmaylias(emails[0], hostname);
+    console.log("background - context menu: emails generated:", emails)
+    // await emaylService.reserveEmaylias(emails[0], hostname);
     await sendMessageToTab(
       MessageType.ActiveInputElementWrite,
       { text: emails[0], copyToClipboard: true } as ActiveInputElementWriteData,

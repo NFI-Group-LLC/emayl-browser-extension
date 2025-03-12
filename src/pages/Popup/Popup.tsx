@@ -7,7 +7,7 @@ import React, {
   ReactNode,
   ReactElement,
 } from 'react';
-import { ChakraProvider, extendTheme } from '@chakra-ui/react';
+import { ChakraProvider, extendTheme, FormControl, FormErrorMessage, FormLabel, Input } from '@chakra-ui/react';
 import './Popup.css';
 import { useBrowserStorageState } from '../../useBrowserStorageState';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -37,7 +37,6 @@ import {
 
 import browser from 'webextension-polyfill';
 import Fuse from 'fuse.js';
-import isEqual from 'lodash.isequal';
 import {
   PopupAction,
   PopupState,
@@ -45,9 +44,11 @@ import {
   STATE_MACHINE_TRANSITIONS,
   AuthenticatedAndManagingAction,
 } from './stateMachine';
-import { Emaylias, EmayliasAction, EmayliasState, UserProfile } from '../../types';
+import { EmayliasRecord, EmayliasAction, EmayliasState, UserProfile, ChangeEmayliasRequest } from '../../types';
 import EmaylService from '../../eMaylService';
 import DomainFavIconTag from '../../DomainFavIconTag';
+import { checkForDomainError, DomainError } from '../../util/validation';
+import { parseDomains } from '../../util/utils';
 // import { isFirefox } from '../../browserUtils';
 
 type TransitionCallback<T extends PopupAction> = (action: T) => void;
@@ -122,13 +123,13 @@ const SignInInstructions = () => {
   );
 };
 
-const ReservationResult = (props: { emaylias: Emaylias }) => {
+const ReservationResult = (props: { email: string }) => {
   const onCopyToClipboardClick = async () => {
-    await navigator.clipboard.writeText(props.emaylias.emaylias);
+    await navigator.clipboard.writeText(props.email);
   };
 
   const onAutofillClick = async () => {
-    await sendMessageToTab(MessageType.Autofill, props.emaylias.emaylias);
+    await sendMessageToTab(MessageType.Autofill, props.email);
   };
 
   const btnClassName =
@@ -140,7 +141,7 @@ const ReservationResult = (props: { emaylias: Emaylias }) => {
       role="alert"
     >
       <p>
-        <strong>{props.emaylias.emaylias}</strong> {chrome.i18n.getMessage("EmayliasCreated")}
+        <strong>{props.email}</strong> {chrome.i18n.getMessage("EmayliasCreated")}
       </p>
       <div className="grid grid-cols-2 gap-2">
         <button
@@ -192,13 +193,13 @@ async function performDeauthSideEffects(): Promise<void> {
 
 const SignOutButton = (props: {
   callback: TransitionCallback<'SIGN_OUT'>;
-  client: EmaylService;
+  emayliasService: EmaylService;
 }) => {
   return (
     <FooterButton
       className="text-sky-400 hover:text-sky-500 focus:outline-sky-400"
       onClick={async () => {
-        await props.client.signOut();
+        await props.emayliasService.signOut();
         performDeauthSideEffects();
         props.callback('SIGN_OUT');
       }}
@@ -208,24 +209,28 @@ const SignOutButton = (props: {
   );
 };
 
-const HmeGenerator = (props: {
+const EmayliasEditComponent = (props: {
   callback: TransitionCallback<AuthenticatedAction>;
-  client: EmaylService;
+  emayliasService: EmaylService;
 }) => {
-  const [hmeEmail, setHmeEmail] = useState<string>();
-  const [hmeError, setHmeError] = useState<string>();
+  const [emails, setEmails] = useState<string[] | null>(null);
+  const [emayliasError, setEmayliasError] = useState<string>();
 
-  const [reservedHme, setReservedHme] = useState<Emaylias>();
-  const [reserveError, setReserveError] = useState<string>();
+  const [selectedEmail, setSelectedEmail] = useState<string | null>(null);
 
-  const [isEmailRefreshSubmitting, setIsEmailRefreshSubmitting] =
-    useState(false);
+  const [isRetrievingEmails, setIsRetrievingEmails] = useState<boolean>();
   const [isUseSubmitting, setIsUseSubmitting] = useState(false);
   const [tabHost, setTabHost] = useState('');
-  // const [fwdToEmail, setFwdToEmail] = useState<string>();
+  const [fwdToEmail, setFwdToEmail] = useState<string>();
+  const [savedEmaylias, setSavedEmaylias] = useState<EmayliasRecord | null>(null)
 
   const [note, setNote] = useState<string>();
-  const [label, setLabel] = useState<string>();
+  const [label, setLabel] = useState<string>("");
+  const [labelError, setLabelError] = useState<string | null>(null)
+
+  const [domains, setDomains] = useState<string[]>([])
+  const [domain, setDomain] = useState<string>("")
+  const [domainError, setDomainError] = useState<DomainError>(DomainError.None)
 
   // useEffect(() => {
   //   const fetchData = async () => {
@@ -244,23 +249,30 @@ const HmeGenerator = (props: {
   //   };
 
   //   fetchData();
-  // }, [props.client]);
+  // }, [props.emayliasService]);
 
   useEffect(() => {
-    const fetchHmeEmail = async () => {
-      setHmeError(undefined);
-      setIsEmailRefreshSubmitting(true);
+    const fetchEmails = async () => {
+      setEmayliasError(undefined);
+      setIsRetrievingEmails(true);
       try {
-        // setHmeEmail(await emaylService.generateEmail());
+        const generatedEmails = await emaylService.generateEmails();
+        setEmails(generatedEmails);
+        setSelectedEmail(generatedEmails[0])
+
+        if (!userProfile) {
+          userProfile = await emaylService.getProfile()
+        }
+        setFwdToEmail(userProfile.emailAddress)
       } catch (e) {
-        setHmeError(e.toString());
+        setEmayliasError(e.toString());
       } finally {
-        setIsEmailRefreshSubmitting(false);
+        setIsRetrievingEmails(false);
       }
     };
 
-    fetchHmeEmail();
-  }, [props.client]);
+    fetchEmails();
+  }, [props.emayliasService]);
 
   useEffect(() => {
     const getTabHost = async () => {
@@ -272,7 +284,8 @@ const HmeGenerator = (props: {
       if (tabUrl !== undefined) {
         const { hostname } = new URL(tabUrl);
         setTabHost(hostname);
-        setLabel(hostname);
+        setLabel(tab.title ?? hostname);
+        setDomains([hostname])
       }
     };
 
@@ -280,43 +293,173 @@ const HmeGenerator = (props: {
   }, []);
 
   const onEmailRefreshClick = async () => {
-    setIsEmailRefreshSubmitting(true);
-    setReservedHme(undefined);
-    setHmeError(undefined);
-    setReserveError(undefined);
-    try {
-      // setHmeEmail(await emaylService.generateEmail());
-    } catch (e) {
-      setHmeError(e.toString());
+    // cycle through the retrieved emails
+    if (emails?.length && selectedEmail) {
+      const index = emails.indexOf(selectedEmail)
+      const email = emails[ index < emails.length - 1 ? index + 1 : 0]
+      setSelectedEmail(email)
     }
-    setIsEmailRefreshSubmitting(false);
   };
 
   const onUseSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsUseSubmitting(true);
-    setReservedHme(undefined);
-    setReserveError(undefined);
 
-    if (hmeEmail !== undefined) {
-      // try {
-      //   setReservedHme(
-      //     await pms.reserveHme(hmeEmail, label || tabHost, note || undefined)
-      //   );
-      //   setLabel(undefined);
-      //   setNote(undefined);
-      // } catch (e) {
-      //   setReserveError(e.toString());
-      // }
+    const domErr: DomainError = validateDomain(domain, domains);
+    const isLabelErr: boolean = (label.length <= 3)
+
+    if (emails?.length) {
+      // validate label
+      if (isLabelErr) {
+        setLabelError(chrome.i18n.getMessage("LabelValidationMinLength"));
+      } else {
+        setLabelError(null)
+      }
+
+      // validate domains
+      if (domain.length && domErr != DomainError.None) {
+        setDomainError(domErr)
+      } else {
+        setDomainError(DomainError.None)
+      }
+
+      if (!isLabelErr && (!domain.length || domErr == DomainError.None) && selectedEmail && userProfile) {
+        try {
+          const changeRecord: ChangeEmayliasRequest = { 
+            emaylias: selectedEmail,
+            label,
+            comment: note ?? "",
+            forwardingEmailAddress: userProfile.emailAddress,
+            attrDomains: parseDomains(domains),
+            state: EmayliasState.ACTIVE
+          }
+      
+          // create a new emaylias
+          const emayliasSaved = await emaylService.createEmaylias(changeRecord);
+          setSavedEmaylias(emayliasSaved)
+
+          // copy the new email address to the clipboard
+          if (typeof window !== 'undefined' && navigator.clipboard) {
+            navigator.clipboard.writeText(emayliasSaved.emaylias)
+          }
+
+          // on success, clear label, domain and notes
+          setLabel("");
+          setDomain("")
+          setDomains([])
+          setNote("")
+
+          // toast({
+          //   description: i18n.t("EmayliasModalView_SuccessNew", { label: values.label }),
+          //   status: 'success'
+          // })
+
+          // // give the list a chance to add the new record before setting the record to scroll to
+          // setTimeout(() => setEmayliasRecord(createResponse), 500)
+        } catch (e) {
+          console.log("error trying to create eMaylias:", e.toString())
+        }    
+      }
     }
     setIsUseSubmitting(false);
   };
 
-  const isReservationFormDisabled =
-    isEmailRefreshSubmitting || hmeEmail == reservedHme?.emaylias;
+  const isReservationFormDisabled = isRetrievingEmails || !emails || !emails.length;
 
   const reservationFormInputClassName =
     'appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-400 text-gray-900 focus:outline-none focus:border-sky-400 focus:z-10 sm:text-sm';
+
+  const hostFromDomainTag = (tag: string): string => {
+    let host = tag
+    try {
+      const url = new URL(tag)
+      host = url.hostname
+    } catch {
+      // if not parsed, check for and remove ending slash
+      host = tag.endsWith('/') ? tag.substring(0, tag.length - 1) : tag
+    }
+
+    // check for and remove starting "www."
+    host = host.startsWith("www.") ? host.substring(4) : host
+
+    // convert to lowercase
+    return host.toLocaleLowerCase()
+  }
+  
+  const validateDomain = (tag: string, tags: string[]): DomainError => {
+    const host = hostFromDomainTag(tag)
+    return tags.includes(host) ? DomainError.AlreadyInUse : checkForDomainError(host)
+  }
+  
+  const handleAddDomain = (domain: string) => {
+    const host = hostFromDomainTag(domain)
+    const domErr = validateDomain(host, domains)
+    setDomainError(domErr)
+    if (domErr == DomainError.None) {
+      setDomains([...domains, host])
+      setDomain("");
+    }
+  }
+
+  const renderDomains = (): ReactNode => {
+    return (
+      <div className="border-slate-200 rounded-lg border p-1 pr-4">
+        <FormLabel
+          fontSize='xs'
+          fontWeight="semibold"
+          color="gray.600"
+          backgroundColor='white'
+          ml="2"
+          mt="-3"
+          px="1.5"
+          position="absolute"
+          zIndex='overlay'
+        >
+          {chrome.i18n.getMessage("DomainsLabel")}
+        </FormLabel>
+        <div className='mt-2'>
+        {domains.map((domain: string) => {
+          return <DomainFavIconTag
+            key={domain}
+            domain={domain}
+            emaylService={emaylService}
+            searchText={null}
+            showBackground
+            onDelete={() => setDomains(domains.filter((dom: string) => dom != domain))}
+            imageOnly={false}
+          />
+        })}
+        </div>
+        <FormControl id="domain" mb="4" isInvalid={domainError != DomainError.None}>
+          <Input
+            type="text"
+            value={domain}
+            autoComplete='off'
+            autoCorrect='off'
+            placeholder={chrome.i18n.getMessage("DomainsPlaceholder")}
+            className='mx-2 mt-2 pl-1 w-64'
+            onChange={(e) => {
+              setDomain(e.currentTarget.value)
+              setDomainError(DomainError.None)
+            }}
+            onKeyDown={(e) => {
+              // validate and add domain if user hits enter and input not empty
+              if (e.key == 'Enter' && e.currentTarget.value.length > 0) {
+                handleAddDomain(domain)
+                e.preventDefault()
+                e.stopPropagation()
+              }
+            }}
+          />
+          {domainError && domainError.length && (
+            <FormErrorMessage className='ml-4'>
+              {chrome.i18n.getMessage(domainError)}
+            </FormErrorMessage>
+          )}
+        </FormControl>
+      </div>
+    )
+  }    
 
   return (
     <TitledComponent
@@ -325,25 +468,25 @@ const HmeGenerator = (props: {
     >
       <div className="text-center space-y-1">
         <div>
-          <span className="text-2xl">
-            {/* <button className="mr-2" onClick={onEmailRefreshClick}>
+          <span className="text-lg">
+            <button className="mr-2" onClick={onEmailRefreshClick}>
               <FontAwesomeIcon
                 className="text-sky-400 hover:text-sky-500 align-text-bottom"
                 icon={faRefresh}
-                spin={isEmailRefreshSubmitting}
+                spin={isRetrievingEmails}
               />
-            </button> */}
-            {hmeEmail}
+            </button>
+            {emails?.length && selectedEmail}
           </span>
-          {/* {fwdToEmail !== undefined && (
+          {fwdToEmail !== undefined && (
             <p className="text-gray-400">
               {chrome.i18n.getMessage("ForwardTo", [fwdToEmail])}
             </p>
-          )} */}
+          )}
         </div>
-        {hmeError && <ErrorMessage>{hmeError}</ErrorMessage>}
+        {emayliasError && <ErrorMessage>{emayliasError}</ErrorMessage>}
       </div>
-      {hmeEmail && (
+      {emails?.length && selectedEmail && (
         <div className="space-y-3">
           <form
             className={`space-y-3 ${
@@ -351,24 +494,57 @@ const HmeGenerator = (props: {
             }`}
             onSubmit={onUseSubmit}
           >
-            <div>
-              <label htmlFor="label" className="block font-medium">
+            <FormControl
+              id="label"
+              mb="4"
+              isInvalid={labelError != null}
+            >
+              <FormLabel
+                fontSize='xs'
+                fontWeight="semibold"
+                color="gray.600"
+                backgroundColor='white'
+                ml="2"
+                mt="-3"
+                px="1.5"
+                position="absolute"
+                zIndex='overlay'
+              >
                 {chrome.i18n.getMessage("Label")}
-              </label>
-              <input
-                id="label"
-                placeholder={tabHost}
-                required
+              </FormLabel>
+              <Input
+                type="text"
                 value={label || ''}
-                onChange={(e) => setLabel(e.target.value)}
+                autoComplete='off'
+                autoCorrect='off'
+                onChange={(e) => {
+                  setLabel(e.target.value)
+                  setLabelError(null)
+                }}
                 className={reservationFormInputClassName}
                 disabled={isReservationFormDisabled}
               />
-            </div>
+              {labelError && labelError.length && (
+                <FormErrorMessage className='ml-4'>
+                  {labelError}
+                </FormErrorMessage>
+              )}
+            </FormControl>
+            {renderDomains()}
             <div>
-              <label htmlFor="note" className="block font-medium">
+              <FormLabel
+                fontSize='xs'
+                fontWeight="semibold"
+                color="gray.600"
+                backgroundColor='white'
+                ml="2"
+                mt="-3"
+                px="1.5"
+                position="absolute"
+                zIndex='overlay'
+              >
                 {chrome.i18n.getMessage("NotesLabel")}
-              </label>
+              </FormLabel>
               <textarea
                 id="note"
                 rows={1}
@@ -383,11 +559,11 @@ const HmeGenerator = (props: {
               loading={isUseSubmitting}
               disabled={isReservationFormDisabled}
             >
-              Use
+              {chrome.i18n.getMessage("EmaylView_SubmitLabel")}
             </LoadingButton>
-            {reserveError && <ErrorMessage>{reserveError}</ErrorMessage>}
+            {emayliasError && <ErrorMessage>{emayliasError}</ErrorMessage>}
           </form>
-          {reservedHme && <ReservationResult emaylias={reservedHme} />}
+          {savedEmaylias && <ReservationResult email={savedEmaylias.emaylias} />}
         </div>
       )}
       <div className="grid grid-cols-2">
@@ -407,8 +583,8 @@ const HmeGenerator = (props: {
 };
 
 const AliasEntryDetails = (props: {
-  emaylias: Emaylias;
-  client: EmaylService;
+  emaylias: EmayliasRecord;
+  emayliasService: EmaylService;
   activationCallback: () => void;
   deletionCallback: () => void;
 }) => {
@@ -556,14 +732,14 @@ const AliasEntryDetails = (props: {
 
 const searchHmeEmails = (
   searchPrompt: string,
-  emayliasList: Emaylias[]
-): Emaylias[] | undefined => {
+  emayliasList: EmayliasRecord[]
+): EmayliasRecord[] | undefined => {
   if (!searchPrompt) {
     return undefined;
   }
 
   const searchEngine = new Fuse(emayliasList, {
-    keys: ['label', 'hme'],
+    keys: ['label', 'comment', 'emaylias'],
     threshold: 0.4,
   });
   const searchResults = searchEngine.search(searchPrompt);
@@ -572,9 +748,9 @@ const searchHmeEmails = (
 
 const EmayliasManager = (props: {
   callback: TransitionCallback<AuthenticatedAndManagingAction>;
-  client: EmaylService;
+  emayliasService: EmaylService;
 }) => {
-  const [fetchedList, setFetchedList] = useState<Emaylias[]>();
+  const [fetchedList, setFetchedList] = useState<EmayliasRecord[]>();
   const [emailsError, setEmailsError] = useState<string>();
   const [isFetching, setIsFetching] = useState(true);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -585,14 +761,16 @@ const EmayliasManager = (props: {
       setEmailsError(undefined);
       setIsFetching(true);
       try {
-        const emayliasList: Emaylias[] = await emaylService.getList();
-        console.log(`EmayliasManager returned ${emayliasList.length} emaylias`)
-        setFetchedList(
-          emayliasList.sort((a, b) => b.provisionDt < a.provisionDt ? -1 : 1)
-        );
+        const [list, profile] = await Promise.all([
+          emaylService.getList(),
+          emaylService.getProfile()
+        ]);
 
-        userProfile = await emaylService.getProfile()
-        console.log("userProfile = ", userProfile)
+        console.log(`EmayliasManager returned ${list.length} emaylias`)
+        setFetchedList(
+          list.sort((a, b) => b.provisionDt < a.provisionDt ? -1 : 1)
+        );
+        userProfile = profile;
       } catch (e) {
         setEmailsError(e.toString());
       } finally {
@@ -601,27 +779,26 @@ const EmayliasManager = (props: {
     };
 
     fetchData();
-  }, [props.client]);
+  }, [props.emayliasService]);
 
-  const activationCallbackFactory = (emaylias: Emaylias) => () => {
+  const activationCallbackFactory = (emaylias: EmayliasRecord) => () => {
     const newEmaylias = { 
       ...emaylias, 
       state: emaylias.state == EmayliasState.ACTIVE ? EmayliasState.INACTIVE : EmayliasState.ACTIVE
     };
-    setFetchedList((prevFetchedList) =>
-      prevFetchedList?.map((item) =>
-        isEqual(item, emaylias) ? newEmaylias : item
-      )
+    setFetchedList((prevList) =>
+      prevList?.map((itm) => itm.objectId == emaylias.objectId ? newEmaylias : itm)
     );
   };
 
-  const deletionCallbackFactory = (emaylias: Emaylias) => () => {
-    setFetchedList((prevFetchedList) =>
-      prevFetchedList?.filter((item) => !isEqual(item, emaylias))
+  const deletionCallbackFactory = (emaylias: EmayliasRecord) => () => {
+    // remove emaylias from the cached list
+    setFetchedList((prevList) =>
+      prevList?.filter((itm) => itm.objectId != emaylias.objectId)
     );
   };
 
-  const aliasEntryListGrid = (fetchedHmeEmails: Emaylias[]) => {
+  const aliasEntryListGrid = (fetchedHmeEmails: EmayliasRecord[]) => {
     const emayliasList =
       searchHmeEmails(searchPrompt || '', fetchedHmeEmails) || fetchedHmeEmails;
 
@@ -653,7 +830,7 @@ const EmayliasManager = (props: {
       'p-2 w-full text-left border-b last:border-b-0 cursor-pointer truncate focus:outline-sky-400';
     const btnClassName = `${btnBaseClassName} hover:bg-gray-100`;
     const selectedBtnClassName = `${btnBaseClassName} text-white bg-sky-400 font-medium`;
-
+  
     const labelList = emayliasList.map((emaylias, idx) => (
       <button
         key={idx}
@@ -702,7 +879,7 @@ const EmayliasManager = (props: {
         <div className="overflow-y-auto p-2 rounded-r-md border border-l-0 border-gray-200">
           {selectedHmeEmail && (
             <AliasEntryDetails
-              client={props.client}
+              emayliasService={props.emayliasService}
               emaylias={selectedHmeEmail}
               activationCallback={activationCallbackFactory(selectedHmeEmail)}
               deletionCallback={deletionCallbackFactory(selectedHmeEmail)}
@@ -766,20 +943,19 @@ const transitionToNextStateElement = (
       return <SignInInstructions />;
     }
     case PopupState.Authenticated: {
-      const callback = (action: AuthenticatedAction) =>
-        setState(STATE_MACHINE_TRANSITIONS[state][action]);
       return (
-        <HmeGenerator
-          callback={callback}
-          client={emaylService}
+        <EmayliasEditComponent
+          callback={(action: AuthenticatedAction) => setState(STATE_MACHINE_TRANSITIONS[state][action])}
+          emayliasService={emaylService}
         />
       );
     }
     case PopupState.AuthenticatedAndManaging: {
-      const callback = (action: AuthenticatedAndManagingAction) =>
-        setState(STATE_MACHINE_TRANSITIONS[state][action]);
       return (
-        <EmayliasManager callback={callback} client={emaylService} />
+        <EmayliasManager
+          callback={(action: AuthenticatedAndManagingAction) => setState(STATE_MACHINE_TRANSITIONS[state][action])}
+          emayliasService={emaylService}
+        />
       );
     }
     default: {

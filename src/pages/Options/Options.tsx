@@ -11,7 +11,7 @@ import startCase from 'lodash.startcase';
 // import isEqual from 'lodash.isequal';
 import { DEFAULT_STORE } from '../../storage';
 import EmaylService from '../../eMaylService';
-import { Emaylias } from '../../types';
+import { EmayliasRecord } from '../../types';
 
 const SelectFwdToForm = () => {
   // const [selectedFwdToEmail, setSelectedFwdToEmail] = useState<string>();

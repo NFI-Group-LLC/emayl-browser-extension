@@ -4,7 +4,7 @@ export type AttrDomain = {
   domain: string
 };
 
-export type Emaylias = {
+export type EmayliasRecord = {
   attrDomains: AttrDomain[];
   comment: string;
   emaylias: string;
@@ -29,8 +29,22 @@ export enum EmayliasAction {
   UNDELETE = 'undelete' // for an emaylias in DELETED state, sets the new state to INACTIVE
 }
 
+export interface IDomain {
+  domain: string
+}
+
+export interface ChangeEmayliasRequest
+{
+  emaylias: string
+  label: string
+  attrDomains: IDomain[]
+  comment?: string
+  state?: EmayliasState
+  forwardingEmailAddress: string
+}
+
 export type EmayliasListResult = {
-  emayliasList: Emaylias[];
+  emayliasList: EmayliasRecord[];
   selectedForwardTo: string;
   forwardToEmails: string[];
 };
