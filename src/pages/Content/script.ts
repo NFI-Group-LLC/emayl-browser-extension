@@ -12,12 +12,12 @@ import browser from 'webextension-polyfill';
 import { getBrowserStorageValue } from '../../storage';
 
 const EMAIL_INPUT_QUERY_STRING =
-  'input[type="email"], input[name="email"], input[id="email"]';
+  'input[type="email"], input[name="email"], input[id="email"], input[autocomplete="username"]';
 
 // A unique CSS class prefix is used to guarantee that the style injected
 // by the extension does not interfere with the existing style of
 // a web page.
-const STYLE_CLASS_PREFIX = '7a4e8d3c-6b2f-4e91-a5f9-d8c7b3f2e140';
+const STYLE_CLASS_PREFIX = 'ca4e8d3c-6b2f-4e91-a5f9-d8c7b3f2e140';
 
 const className = (shortName: string): string =>
   `${STYLE_CLASS_PREFIX}-${shortName}`;
@@ -35,9 +35,13 @@ type AutofillableInputElement = {
 const disableButton = (
   btn: HTMLButtonElement,
   cursorClass: string,
-  copy: string
+  copy: string | null = null
 ): void => {
-  btn.innerHTML = copy;
+  if (!copy) {
+    btn.innerHTML = `<div class="${className('spinner')}"></div>`;
+  } else {
+    btn.innerHTML = copy;
+  }
   btn.setAttribute('disabled', 'true');
   btn.classList.remove(className('hover-button'));
   btn.classList.forEach((name) => {
@@ -53,9 +57,11 @@ const enableButton = (
   cursorClass: string,
   copy: string
 ): void => {
-  btn.innerHTML = copy;
+  // btn.innerHTML = copy;
+  btn.innerHTML = "";
   btn.removeAttribute('disabled');
-  btn.classList.add(className('hover-button'));
+  // btn.classList.add(className('hover-button'));
+  btn.classList.add(className('icon'));
   btn.classList.forEach((name) => {
     if (name.startsWith(className('cursor-'))) {
       btn.classList.remove(name);
@@ -64,21 +70,24 @@ const enableButton = (
   btn.classList.add(className(cursorClass));
 };
 
-const loadingApp = chrome.i18n.getMessage("LoadingApp") 
-
 const makeButtonSupport = (
   inputElement: HTMLInputElement
 ): AutofillableInputElement['buttonSupport'] => {
+  console.log("makeButtonSupport()")
+  // create button
   const btnElement = document.createElement('button');
   const btnElementId = uuidv4();
   btnElement.setAttribute('id', btnElementId);
   btnElement.setAttribute('type', 'button');
   btnElement.classList.add(className('button'));
+  btnElement.setAttribute('clientHeight', inputElement.clientHeight.toString())
 
-  disableButton(btnElement, 'cursor-not-allowed', loadingApp);
+  // Show spinner instead of "eMayl = Loading"
+  btnElement.innerHTML = `<div class="${className('spinner')}"></div>`;
+  btnElement.classList.add(className('cursor-progress'));
 
   const inputOnFocusCallback = async () => {
-    disableButton(btnElement, 'cursor-progress', loadingApp);
+    disableButton(btnElement, 'cursor-progress');
     inputElement.parentNode?.insertBefore(btnElement, inputElement.nextSibling);
 
     await browser.runtime.sendMessage({
@@ -90,20 +99,20 @@ const makeButtonSupport = (
   inputElement.addEventListener('focus', inputOnFocusCallback);
 
   const inputOnBlurCallback = () => {
-    disableButton(btnElement, 'cursor-not-allowed', loadingApp);
+    disableButton(btnElement, 'cursor-not-allowed');
     btnElement.remove();
   };
 
-  inputElement.addEventListener('blur', inputOnBlurCallback);
+  // inputElement.addEventListener('blur', inputOnBlurCallback);
 
   const btnOnMousedownCallback = async (ev: MouseEvent) => {
     ev.preventDefault();
     const email = btnElement.innerHTML;
-    disableButton(btnElement, 'cursor-progress', loadingApp);
-    await browser.runtime.sendMessage({
-      type: MessageType.ReservationRequest,
-      data: { email, label: window.location.host, elementId: btnElement.id },
-    } as Message<ReservationRequestData>);
+    disableButton(btnElement, 'cursor-progress');
+    // await browser.runtime.sendMessage({
+    //   type: MessageType.ReservationRequest,
+    //   data: { email, label: window.location.host, elementId: btnElement.id },
+    // } as Message<ReservationRequestData>);
   };
 
   btnElement.addEventListener('mousedown', btnOnMousedownCallback);
@@ -141,7 +150,7 @@ export default async function main(): Promise<void> {
     buttonSupport:
       options?.autofill.button === false
         ? undefined
-        : makeButtonSupport(inputElement),
+        : undefined // makeButtonSupport(inputElement),
   });
 
   const autofillableInputElements = Array.from(emailInputElements).map(
