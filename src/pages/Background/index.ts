@@ -36,12 +36,12 @@ const performDeauthSideEffects = () => {
 const performAuthSideEffects = (options: { notification?: boolean } = {}) => {
   const { notification = false } = options;
 
-  browser.contextMenus
-    .update(CONTEXT_MENU_ITEM_ID, {
-      title: chrome.i18n.getMessage("GenerateNewEntry"),
-      enabled: true,
-    })
-    .catch(console.debug);
+  // browser.contextMenus
+  //   .update(CONTEXT_MENU_ITEM_ID, {
+  //     title: chrome.i18n.getMessage("GenerateNewEntry"),
+  //     enabled: true,
+  //   })
+  //   .catch(console.debug);
 
   notification &&
     browser.notifications
@@ -118,27 +118,27 @@ browser.runtime.onMessage.addListener(async (uncastedMessage: unknown) => {
 // ===== Context menu =====
 
 const setupContextMenu = async () => {
-  const options =
-    (await getBrowserStorageValue('options')) ||
-    DEFAULT_STORE.options;
+  // const options =
+  //   (await getBrowserStorageValue('options')) ||
+  //   DEFAULT_STORE.options;
 
-  browser.contextMenus.create(
-    {
-      id: CONTEXT_MENU_ITEM_ID,
-      title: chrome.i18n.getMessage("LoadingApp"),
-      contexts: ['editable'],
-      enabled: false,
-      visible: options.autofill.contextMenu,
-    },
-    async () => {
-      const isAuthenticated = await emaylService.isAuthenticated();
-      if (isAuthenticated) {
-        performAuthSideEffects();
-      } else {
-        performDeauthSideEffects();
-      }
-    }
-  );
+  // browser.contextMenus.create(
+  //   {
+  //     id: CONTEXT_MENU_ITEM_ID,
+  //     title: chrome.i18n.getMessage("LoadingApp"),
+  //     contexts: ['editable'],
+  //     enabled: false,
+  //     visible: options.autofill.contextMenu,
+  //   },
+  //   async () => {
+  //     const isAuthenticated = await emaylService.isAuthenticated();
+  //     if (isAuthenticated) {
+  //       performAuthSideEffects();
+  //     } else {
+  //       performDeauthSideEffects();
+  //     }
+  //   }
+  // );
 };
 
 // At any given time, there should be 1 created context menu item. We want to prevent
