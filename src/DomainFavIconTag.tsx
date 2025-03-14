@@ -72,7 +72,7 @@ const DomainFavIconTag = ({ domain, emaylService, searchText, showBackground, on
             {domain}
           </Highlight>
           {onDelete && (
-            <button type='button' onClick={onDelete} className='ml-2'>
+            <button type='button' onClick={onDelete} className='ml-2 pl-1'>
               <FontAwesomeIcon icon={faX} className="text-gray-800 mr-1" />
             </button>
           )}

@@ -78,8 +78,7 @@ const SignInInstructions = () => {
 
   return (
     <TitledComponent
-      title={chrome.i18n.getMessage("AppName")}
-      subtitle={chrome.i18n.getMessage("SignInView_LogInButtonLabel")}
+      title={chrome.i18n.getMessage("SignInView_LogInButtonLabel")}
     >
       <div className="space-y-4">
         <div className="text-sm space-y-2">
@@ -115,7 +114,7 @@ const SignInInstructions = () => {
             aria-label={chrome.i18n.getMessage("GoToLoginSite")}
           >
             <FontAwesomeIcon icon={faExternalLink} className="mr-1" />
-            {chrome.i18n.getMessage("GoToLoginButton")}
+            {chrome.i18n.getMessage("GoToWebApp")}
           </a>
         </div>
       </div>
@@ -275,22 +274,40 @@ const EmayliasEditComponent = (props: {
   }, [props.emayliasService]);
 
   useEffect(() => {
+    const attemptGetTabDetails = async (): Promise<browser.Tabs.Tab> => {
+      const [tab] = await browser.tabs.query({ active: true, lastFocusedWindow: true });
+      return tab;
+    }
+  
     const getTabHost = async () => {
-      const [tab] = await browser.tabs.query({
-        active: true,
-        lastFocusedWindow: true,
-      });
-      const tabUrl = tab?.url;
-      if (tabUrl !== undefined) {
-        const { hostname } = new URL(tabUrl);
-        setTabHost(hostname);
-        setLabel(tab.title ?? hostname);
-        setDomains([hostname])
-      }
+      let attemptNum = 0;
+      const interval = setInterval(async () => {
+        attemptNum += 1;
+        if (attemptNum >= 10) {
+          clearInterval(interval)
+          return;
+        }
+
+        const tab = await attemptGetTabDetails();
+        const tabUrl = tab?.url;
+        if (tabUrl) {
+          let { hostname } = new URL(tabUrl);
+          if (hostname.startsWith("www.")) {
+            hostname = hostname.replace("www.", "")
+          }
+          setTabHost(hostname);
+          setLabel(/* tab.title ??*/ hostname);
+          setDomains([hostname])
+          setNote(tab.url)
+
+          clearInterval(interval)
+          return;
+        }
+      }, 200)
     };
 
     getTabHost().catch(console.error);
-  }, []);
+  }, [props]);
 
   const onEmailRefreshClick = async () => {
     // cycle through the retrieved emails
@@ -463,8 +480,7 @@ const EmayliasEditComponent = (props: {
 
   return (
     <TitledComponent
-      title={chrome.i18n.getMessage("AppName")}
-      subtitle={chrome.i18n.getMessage("CreateScreenSubtitle", tabHost)}
+      title={chrome.i18n.getMessage("CreateScreenSubtitle", tabHost)}
     >
       <div className="text-center space-y-1">
         <div>
@@ -476,11 +492,16 @@ const EmayliasEditComponent = (props: {
                 spin={isRetrievingEmails}
               />
             </button>
-            {emails?.length && selectedEmail}
+            <b>
+              {emails?.length && selectedEmail}
+            </b>
           </span>
           {fwdToEmail !== undefined && (
-            <p className="text-gray-400">
-              {chrome.i18n.getMessage("ForwardTo", [fwdToEmail])}
+            <p className="text-gray-600 text-sm mt-0.5">
+              {chrome.i18n.getMessage("ForwardTo")}
+              <b className='ml-1 font-semibold'>
+                {fwdToEmail}
+              </b>
             </p>
           )}
         </div>
@@ -914,8 +935,7 @@ const EmayliasManager = (props: {
 
   return (
     <TitledComponent
-      title={chrome.i18n.getMessage("AppName")}
-      subtitle={chrome.i18n.getMessage("AppTagLine")}
+      title="" // {chrome.i18n.getMessage("AppTagLine")}
     >
       {resolveMainChildComponent()}
       <div className="grid grid-cols-2">

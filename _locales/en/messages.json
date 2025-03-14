@@ -138,7 +138,7 @@
         "description": ""
     },
     "GenerateNewEntry": {
-        "message": "Generate new eMaylias",
+        "message": "Create an eMaylias",
         "description": ""
     },
     "NoEntries": {
@@ -176,13 +176,8 @@
         "description": ""
     },
     "ForwardTo": {
-        "message": "Forwards to: $email$",
-        "description": "",
-        "placeholders": {
-            "email": {
-                "content": "$1"
-            }
-        }
+        "message": "Forwards to",
+        "description": ""
     },
     "ManageEmails": {
         "message": "Manage eMaylias",
@@ -240,8 +235,8 @@
         "message": "Go to emayl.app site to sign in",
         "description": ""
     },
-    "GoToLoginButton": {
-        "message": "Go to emayl.app",
+    "GoToWebApp": {
+        "message": "Go to emayl.app in a new tab",
         "description": ""
     }
 }
