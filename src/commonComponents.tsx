@@ -60,7 +60,6 @@ export const ErrorMessage = (props: { children?: React.ReactNode }) => {
 
 export const TitledComponent = (props: {
   title: string;
-  subtitle: string;
   children?: React.ReactNode;
 }) => {
   const children =
@@ -68,15 +67,30 @@ export const TitledComponent = (props: {
 
   return (
     <div className="text-base space-y-3">
-      <div className="text-center">
-        <h1 className="text-3xl font-bold text-gray-900">{props.title}</h1>
-        <h2 className="font-medium text-gray-400">{props.subtitle}</h2>
+      <div className="flex text-center items-center justify-center">
+        <h1 className="flex text-xl font-normal text-blue-900 items-center justify-center">
+          <Link
+            href="https://emayl.app"
+            className="flex items-center"
+            aria-label={chrome.i18n.getMessage("GoToWebApp")}
+            title={chrome.i18n.getMessage("GoToWebApp")}
+          >
+            <img
+              src='./icon-16.png'
+              alt={chrome.i18n.getMessage("GoToWebApp")}
+            />
+            <div className='flex text-base text-center font-serif ml-1 text-black'>
+              {chrome.i18n.getMessage("AppName")}
+              <span className='text-sm align-super ml-0.5'>™</span>
+            </div>
+          </Link>
+          <span className="text-2xl font-extrabold text-gray-700 ml-5">{props.title}</span>
+        </h1>
       </div>
       {children?.map((child, key) => {
         return (
           child && (
             <React.Fragment key={key}>
-              <hr />
               {child}
             </React.Fragment>
           )

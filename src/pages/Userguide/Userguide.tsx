@@ -174,8 +174,7 @@ const Userguide = () => {
   return (
     <div className="w-9/12 m-auto mt-3 mb-24">
       <TitledComponent
-        title={chrome.i18n.getMessage("AppName")}
-        subtitle={chrome.i18n.getMessage("HelpSubtitle")}
+        title={chrome.i18n.getMessage("HelpSubtitle")}
       >
         <div>
           <h3 className="font-bold text-lg mb-3">

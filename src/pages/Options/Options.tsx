@@ -155,8 +155,7 @@ const Options = () => {
   return (
     <div className="w-9/12 m-auto my-3">
       <TitledComponent
-        title={chrome.i18n.getMessage("AppName")}
-        subtitle={chrome.i18n.getMessage("OptionsSettingsSection")}
+        title={chrome.i18n.getMessage("OptionsSettingsSection")}
       >
         <div>
           <h3 className="font-bold text-lg mb-3">
