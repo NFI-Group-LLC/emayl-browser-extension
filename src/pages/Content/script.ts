@@ -3,7 +3,6 @@ import {
   GenerationResponseData,
   Message,
   MessageType,
-  ReservationRequestData,
   ReservationResponseData,
 } from '../../messages';
 import { v4 as uuidv4 } from 'uuid';

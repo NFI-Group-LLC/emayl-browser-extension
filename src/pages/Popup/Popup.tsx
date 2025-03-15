@@ -1,42 +1,17 @@
 import React, {
   useState,
-  Dispatch,
   useEffect,
-  ButtonHTMLAttributes,
-  DetailedHTMLProps,
   ReactNode,
-  ReactElement,
 } from 'react';
 import { ChakraProvider, extendTheme, FormControl, FormErrorMessage, FormLabel, Input } from '@chakra-ui/react';
 import './Popup.css';
 import { useBrowserStorageState } from '../../useBrowserStorageState';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import {
-  faRefresh,
-  faClipboard,
-  faCheck,
-  faList,
-  faSignOut,
-  IconDefinition,
-  faPlus,
-  faTrashAlt,
-  faBan,
-  faSearch,
-  faExternalLink,
-  faQuestionCircle,
-} from '@fortawesome/free-solid-svg-icons';
+import { faRefresh, faList, faPlus, faSearch } from '@fortawesome/free-solid-svg-icons';
 // import { faFirefoxBrowser } from '@fortawesome/free-brands-svg-icons';
-import { MessageType, sendMessageToTab } from '../../messages';
-import {
-  ErrorMessage,
-  LoadingButton,
-  Spinner,
-  TitledComponent,
-  Link,
-} from '../../commonComponents';
+import { ErrorMessage, LoadingButton, Spinner, TitledComponent } from '../../commonComponents';
 
 import browser from 'webextension-polyfill';
-import Fuse from 'fuse.js';
 import {
   PopupAction,
   PopupState,
@@ -44,144 +19,24 @@ import {
   STATE_MACHINE_TRANSITIONS,
   AuthenticatedAndManagingAction,
 } from './stateMachine';
-import { EmayliasRecord, EmayliasAction, EmayliasState, UserProfile, ChangeEmayliasRequest } from '../../types';
+import { EmayliasRecord, EmayliasState, UserProfile, ChangeEmayliasRequest } from '../../types';
 import EmaylService from '../../eMaylService';
 import DomainFavIconTag from '../../DomainFavIconTag';
 import { checkForDomainError, DomainError } from '../../util/validation';
 import { parseDomains } from '../../util/utils';
+import { SignInInstructions } from './SignInInstructions';
+import { EmayliasCreatedToast } from './EmayliasCreatedToast';
+import { FooterButton } from './FooterButton';
+import { SignOutButton } from './SignOutButton';
+import { AliasEntryDetails } from './AliasEntryDetails';
 // import { isFirefox } from '../../browserUtils';
 
-type TransitionCallback<T extends PopupAction> = (action: T) => void;
+export type TransitionCallback<T extends PopupAction> = (action: T) => void;
 
-const theme = extendTheme({
-  colors: {
-    primary: {
-      50: "#f7fff8",
-      100: "#f3fff4",
-      200: "#eefff0",
-      300: "#e9ffeb",
-      400: "#e5ffe7",
-      500: "#e0ffe3",
-      600: "#bed9c1",
-      700: "#9db29f",
-      800: "#7b8c7d",
-      900: "#5a665b",
-    }
-  }
-});
-
-const emaylService = new EmaylService();
+export const emaylService = new EmaylService();
 let userProfile: UserProfile | null = null;
 
-const SignInInstructions = () => {
-  const userguideUrl = browser.runtime.getURL('userguide.html');
-
-  return (
-    <TitledComponent
-      title={chrome.i18n.getMessage("SignInView_LogInButtonLabel")}
-    >
-      <div className="space-y-4">
-        <div className="text-sm space-y-2">
-          <p>
-            {chrome.i18n.getMessage("SignInInstructions1")}
-            {' '}
-            <Link
-              href="https://emayl.app"
-              className="font-semibold"
-              aria-label={chrome.i18n.getMessage("GoToLoginSite")}
-            >
-              emayl.app
-            </Link>
-            .
-          </p>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <a
-            href={userguideUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="w-full justify-center text-white bg-sky-400 hover:bg-sky-500 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg px-5 py-2.5 text-center mr-2 inline-flex items-center"
-            aria-label={chrome.i18n.getMessage("UserGuideHelpButton")}
-          >
-            <FontAwesomeIcon icon={faQuestionCircle} className="mr-1" />
-            Help
-          </a>
-          <a
-            href="https://emayl.app"
-            target="_blank"
-            rel="noreferrer"
-            className="w-full justify-center text-white bg-sky-400 hover:bg-sky-500 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg px-5 py-2.5 text-center mr-2 inline-flex items-center"
-            aria-label={chrome.i18n.getMessage("GoToLoginSite")}
-          >
-            <FontAwesomeIcon icon={faExternalLink} className="mr-1" />
-            {chrome.i18n.getMessage("GoToWebApp")}
-          </a>
-        </div>
-      </div>
-    </TitledComponent>
-  );
-};
-
-const ReservationResult = (props: { email: string }) => {
-  const onCopyToClipboardClick = async () => {
-    await navigator.clipboard.writeText(props.email);
-  };
-
-  const onAutofillClick = async () => {
-    await sendMessageToTab(MessageType.Autofill, props.email);
-  };
-
-  const btnClassName =
-    'focus:outline-none text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 block w-full';
-
-  return (
-    <div
-      className="space-y-2 p-2 text-sm text-green-700 bg-green-100 rounded-lg"
-      role="alert"
-    >
-      <p>
-        <strong>{props.email}</strong> {chrome.i18n.getMessage("EmayliasCreated")}
-      </p>
-      <div className="grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          className={btnClassName}
-          onClick={onCopyToClipboardClick}
-        >
-          <FontAwesomeIcon icon={faClipboard} className="mr-1" />
-          {chrome.i18n.getMessage("CopyToClipboard")}
-        </button>
-        <button
-          type="button"
-          className={btnClassName}
-          onClick={onAutofillClick}
-        >
-          <FontAwesomeIcon icon={faCheck} className="mr-1" />
-          {chrome.i18n.getMessage("Autofill")}
-        </button>
-      </div>
-    </div>
-  );
-};
-
-const FooterButton = (
-  props: { label: string; icon: IconDefinition } & DetailedHTMLProps<
-    ButtonHTMLAttributes<HTMLButtonElement>,
-    HTMLButtonElement
-  >
-) => {
-  return (
-    <button
-      className="text-sky-400 hover:text-sky-500 focus:outline-sky-400"
-      {...props}
-    >
-      <FontAwesomeIcon icon={props.icon} className="mr-1" />
-      {props.label}
-    </button>
-  );
-};
-
-async function performDeauthSideEffects(): Promise<void> {
+export async function performDeauthSideEffects(): Promise<void> {
   // await browser.contextMenus
   //   .update(CONTEXT_MENU_ITEM_ID, {
   //     title: chrome.i18n.getMessage("SignedOut_SignInInstructions"),
@@ -189,24 +44,6 @@ async function performDeauthSideEffects(): Promise<void> {
   //   })
   //   .catch(console.debug);
 }
-
-const SignOutButton = (props: {
-  callback: TransitionCallback<'SIGN_OUT'>;
-  emayliasService: EmaylService;
-}) => {
-  return (
-    <FooterButton
-      className="text-sky-400 hover:text-sky-500 focus:outline-sky-400"
-      onClick={async () => {
-        await props.emayliasService.signOut();
-        performDeauthSideEffects();
-        props.callback('SIGN_OUT');
-      }}
-      label={chrome.i18n.getMessage("SignoutButtonLabel")}
-      icon={faSignOut}
-    />
-  );
-};
 
 const EmayliasEditComponent = (props: {
   callback: TransitionCallback<AuthenticatedAction>;
@@ -273,41 +110,23 @@ const EmayliasEditComponent = (props: {
     fetchEmails();
   }, [props.emayliasService]);
 
-  useEffect(() => {
-    const attemptGetTabDetails = async (): Promise<browser.Tabs.Tab> => {
-      const [tab] = await browser.tabs.query({ active: true, lastFocusedWindow: true });
-      return tab;
-    }
-  
+  useEffect(() => {  
     const getTabHost = async () => {
-      let attemptNum = 0;
-      const interval = setInterval(async () => {
-        attemptNum += 1;
-        if (attemptNum >= 10) {
-          clearInterval(interval)
-          return;
+      const [tab] = await browser.tabs.query({ active: true, lastFocusedWindow: true });
+      if (tab?.url) {
+        let { hostname } = new URL(tab?.url);
+        if (hostname.startsWith("www.")) {
+          hostname = hostname.replace("www.", "")
         }
-
-        const tab = await attemptGetTabDetails();
-        const tabUrl = tab?.url;
-        if (tabUrl) {
-          let { hostname } = new URL(tabUrl);
-          if (hostname.startsWith("www.")) {
-            hostname = hostname.replace("www.", "")
-          }
-          setTabHost(hostname);
-          setLabel(/* tab.title ??*/ hostname);
-          setDomains([hostname])
-          setNote(tab.url)
-
-          clearInterval(interval)
-          return;
-        }
-      }, 200)
+        setTabHost(hostname);
+        setLabel(/* tab.title ??*/ hostname);
+        setDomains([hostname])
+        setNote(tab.url)
+      }
     };
 
     getTabHost().catch(console.error);
-  }, [props]);
+  }, []);
 
   const onEmailRefreshClick = async () => {
     // cycle through the retrieved emails
@@ -584,7 +403,7 @@ const EmayliasEditComponent = (props: {
             </LoadingButton>
             {emayliasError && <ErrorMessage>{emayliasError}</ErrorMessage>}
           </form>
-          {savedEmaylias && <ReservationResult email={savedEmaylias.emaylias} />}
+          {savedEmaylias && <EmayliasCreatedToast email={savedEmaylias.emaylias} />}
         </div>
       )}
       <div className="grid grid-cols-2">
@@ -603,155 +422,7 @@ const EmayliasEditComponent = (props: {
   );
 };
 
-const AliasEntryDetails = (props: {
-  emaylias: EmayliasRecord;
-  emayliasService: EmaylService;
-  activationCallback: () => void;
-  deletionCallback: () => void;
-}) => {
-  const [isActivateSubmitting, setIsActivateSubmitting] = useState(false);
-  const [isDeleteSubmitting, setIsDeleteSubmitting] = useState(false);
-
-  const [error, setError] = useState<string>();
-
-  // Reset the error and the loaders when a new HME prop is passed to this component
-  useEffect(() => {
-    setError(undefined);
-    setIsActivateSubmitting(false);
-    setIsDeleteSubmitting(false);
-  }, [props.emaylias]);
-
-  const onActivationClick = async () => {
-    setIsActivateSubmitting(true);
-    try {
-      if (props.emaylias.state == EmayliasState.ACTIVE) {
-        await emaylService.changeEmayliasState(props.emaylias.objectId, EmayliasAction.INACTIVATE);
-      } else {
-        await emaylService.changeEmayliasState(props.emaylias.objectId, EmayliasAction.ACTIVATE);
-      }
-      props.activationCallback();
-    } catch (e) {
-      setError(e.toString());
-    } finally {
-      setIsActivateSubmitting(false);
-    }
-  };
-
-  const onDeletionClick = async () => {
-    setIsDeleteSubmitting(true);
-    try {
-      await emaylService.changeEmayliasState(props.emaylias.objectId, EmayliasAction.DELETE);
-      props.deletionCallback();
-    } catch (e) {
-      setError(e.toString());
-    } finally {
-      setIsDeleteSubmitting(false);
-    }
-  };
-
-  const onCopyClick = async () => {
-    await navigator.clipboard.writeText(props.emaylias.emaylias);
-  };
-
-  const onAutofillClick = async () => {
-    await sendMessageToTab(MessageType.Autofill, props.emaylias.emaylias);
-  };
-
-  const btnClassName =
-    'w-full justify-center text-white focus:ring-4 focus:outline-none font-medium rounded-lg px-2 py-3 text-center inline-flex items-center';
-  const labelClassName = 'font-semibold text-sm';
-  let valueClassName = 'text-sm break-words ';
-  if (props.emaylias.state == EmayliasState.ACTIVE) {
-    valueClassName += 'text-black'
-  } else {
-    valueClassName += 'text-gray-300'
-  }
-
-  return (
-    <div className="space-y-2">
-      <div>
-        <p className={labelClassName}>{chrome.i18n.getMessage("Emaylias")}</p>
-        <p title={props.emaylias.emaylias} className={valueClassName}>
-          {props.emaylias.emaylias}
-        </p>
-      </div>
-      <div>
-        <p className={labelClassName}>{chrome.i18n.getMessage("Label")}</p>
-        <p title={props.emaylias.label} className={valueClassName}>
-          {props.emaylias.label}
-        </p>
-      </div>
-      <div>
-        <p className={labelClassName}>{chrome.i18n.getMessage("ForwardingTo")}</p>
-        <p title={props.emaylias.forwardingAddress} className={valueClassName}>
-          {props.emaylias.forwardingAddress}
-        </p>
-      </div>
-      <div>
-        <p className={labelClassName}>{chrome.i18n.getMessage("CreatedAt")}</p>
-        <p className={valueClassName}>
-          {new Date(props.emaylias.provisionDt?.replace(/Z$/, '') as string).toLocaleString()}
-        </p>
-      </div>
-      <div>
-        <p className={labelClassName}>{chrome.i18n.getMessage("LastModifiedAt")}</p>
-        <p className={valueClassName}>
-          {new Date(props.emaylias.lastModifiedDt?.replace(/Z$/, '') as string).toLocaleString()}
-        </p>
-      </div>
-      {props.emaylias.comment && (
-        <div>
-          <p className={labelClassName}>{chrome.i18n.getMessage("NotesLabel")}</p>
-          <p title={props.emaylias.comment} className={valueClassName}>
-            {props.emaylias.comment}
-          </p>
-        </div>
-      )}
-      {error && <ErrorMessage>{error}</ErrorMessage>}
-      <div className="grid grid-cols-3 gap-2">
-        <button
-          title={chrome.i18n.getMessage("CopyEmail")}
-          className={`${btnClassName} bg-sky-400 hover:bg-sky-500 focus:ring-blue-300`}
-          onClick={onCopyClick}
-        >
-          <FontAwesomeIcon icon={faClipboard} />
-        </button>
-        <button
-          title={chrome.i18n.getMessage("Autofill")}
-          className={`${btnClassName} bg-sky-400 hover:bg-sky-500 focus:ring-blue-300`}
-          onClick={onAutofillClick}
-        >
-          <FontAwesomeIcon icon={faCheck} />
-        </button>
-        <LoadingButton
-          title={(props.emaylias.state == EmayliasState.ACTIVE) ? chrome.i18n.getMessage("Deactivate") : chrome.i18n.getMessage("Reactivate")}
-          className={`${btnClassName} ${
-            (props.emaylias.state == EmayliasState.ACTIVE)
-              ? 'bg-red-500 hover:bg-red-600 focus:ring-red-300'
-              : 'bg-sky-400 hover:bg-sky-500 focus:ring-blue-300'
-          }`}
-          onClick={onActivationClick}
-          loading={isActivateSubmitting}
-        >
-          <FontAwesomeIcon icon={props.emaylias.state == EmayliasState.ACTIVE ? faBan : faRefresh} />
-        </LoadingButton>
-        {(props.emaylias.state == EmayliasState.INACTIVE) && (
-          <LoadingButton
-            title={chrome.i18n.getMessage("Delete")}
-            className={`${btnClassName} bg-red-500 hover:bg-red-600 focus:ring-red-300 col-span-3`}
-            onClick={onDeletionClick}
-            loading={isDeleteSubmitting}
-          >
-            <FontAwesomeIcon icon={faTrashAlt} className="mr-1" />
-            {chrome.i18n.getMessage("Delete")}
-          </LoadingButton>
-        )}
-      </div>
-    </div>
-  );
-};
-
-const searchHmeEmails = (
+const searchEntries = (
   searchPrompt: string,
   emayliasList: EmayliasRecord[]
 ): EmayliasRecord[] | undefined => {
@@ -759,23 +430,26 @@ const searchHmeEmails = (
     return undefined;
   }
 
-  const searchEngine = new Fuse(emayliasList, {
-    keys: ['label', 'comment', 'emaylias'],
-    threshold: 0.4,
-  });
-  const searchResults = searchEngine.search(searchPrompt);
-  return searchResults.map((result) => result.item);
+  const searchUpper = searchPrompt.toLocaleUpperCase()
+  return emayliasList.filter(rec => {
+    return rec.label.toUpperCase().includes(searchUpper) ||
+           rec.comment?.toUpperCase().includes(searchUpper) ||
+           rec.emaylias.toUpperCase().includes(searchUpper) ||
+           rec.attrDomains?.find(attr => { return attr.domain.toLocaleUpperCase().includes(searchUpper)}) ||
+           (rec.forwardingAddress != null) && rec.forwardingAddress.toLocaleUpperCase().includes(searchUpper)
+  })
 };
 
 const EmayliasManager = (props: {
   callback: TransitionCallback<AuthenticatedAndManagingAction>;
   emayliasService: EmaylService;
+  initialSearch: string
 }) => {
   const [fetchedList, setFetchedList] = useState<EmayliasRecord[]>();
   const [emailsError, setEmailsError] = useState<string>();
   const [isFetching, setIsFetching] = useState(true);
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [searchPrompt, setSearchPrompt] = useState<string>();
+  const [searchPrompt, setSearchPrompt] = useState<string>(props.initialSearch);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -787,7 +461,6 @@ const EmayliasManager = (props: {
           emaylService.getProfile()
         ]);
 
-        console.log(`EmayliasManager returned ${list.length} emaylias`)
         setFetchedList(
           list.sort((a, b) => b.provisionDt < a.provisionDt ? -1 : 1)
         );
@@ -801,6 +474,10 @@ const EmayliasManager = (props: {
 
     fetchData();
   }, [props.emayliasService]);
+
+  useEffect(() => {
+    setSearchPrompt(props.initialSearch)
+  }, [props.initialSearch])
 
   const activationCallbackFactory = (emaylias: EmayliasRecord) => () => {
     const newEmaylias = { 
@@ -821,7 +498,7 @@ const EmayliasManager = (props: {
 
   const aliasEntryListGrid = (fetchedHmeEmails: EmayliasRecord[]) => {
     const emayliasList =
-      searchHmeEmails(searchPrompt || '', fetchedHmeEmails) || fetchedHmeEmails;
+      searchEntries(searchPrompt || '', fetchedHmeEmails) || fetchedHmeEmails;
 
     if (selectedIndex >= emayliasList.length) {
       setSelectedIndex(emayliasList.length - 1);
@@ -836,6 +513,7 @@ const EmayliasManager = (props: {
         </div>
         <input
           type="search"
+          value={searchPrompt}
           className="pl-9 p-2 w-full rounded placeholder-gray-400 border border-gray-200 focus:outline-none focus:border-sky-400"
           placeholder={chrome.i18n.getMessage("SearchPlaceholder")}
           aria-label={chrome.i18n.getMessage("SearchAriaLabel")}
@@ -954,37 +632,6 @@ const EmayliasManager = (props: {
   );
 };
 
-const transitionToNextStateElement = (
-  state: PopupState,
-  setState: Dispatch<PopupState>,
-): ReactElement => {
-  switch (state) {
-    case PopupState.SignedOut: {
-      return <SignInInstructions />;
-    }
-    case PopupState.Authenticated: {
-      return (
-        <EmayliasEditComponent
-          callback={(action: AuthenticatedAction) => setState(STATE_MACHINE_TRANSITIONS[state][action])}
-          emayliasService={emaylService}
-        />
-      );
-    }
-    case PopupState.AuthenticatedAndManaging: {
-      return (
-        <EmayliasManager
-          callback={(action: AuthenticatedAndManagingAction) => setState(STATE_MACHINE_TRANSITIONS[state][action])}
-          emayliasService={emaylService}
-        />
-      );
-    }
-    default: {
-      const exhaustivenessCheck: never = state;
-      throw new Error(`Unhandled PopupState case: ${exhaustivenessCheck}`);
-    }
-  }
-};
-
 const Popup = () => {
   const [state, setState, isStateLoading] = useBrowserStorageState(
     'popupState',
@@ -992,41 +639,126 @@ const Popup = () => {
   );
 
   const [clientAuthStateSynced, setClientAuthStateSynced] = useState(false);
+  const [initialSearch, setInitialSearch] = useState("");
 
   useEffect(() => {
-    const syncClientAuthState = async () => {
-      const isAuthenticated = await emaylService.isAuthenticated();
-      if (isAuthenticated) {
-        setState((prevState) =>
-          prevState === PopupState.SignedOut
-            ? PopupState.Authenticated
-            : prevState
-        );
-      } else {
-        setState(PopupState.SignedOut);
-        performDeauthSideEffects();
+    const initDataCheck = async () => {
+      console.log("**** doing initDataCheck")
+      const isAuthenticated = syncClientAuthState();
+      if (!isAuthenticated) {
+        return;
       }
 
-      setClientAuthStateSynced(true);
+      const [tab] = await browser.tabs.query({ active: true, lastFocusedWindow: true });
+      if (tab?.url) {
+        let { hostname } = new URL(tab?.url);
+        if (hostname.startsWith("www.")) {
+          hostname = hostname.replace("www.", "")
+        }
+        console.log("**** hostname = ", hostname)
+        if (hostname) {
+          // retrieve the full list of eMaylias entries
+          const list = await emaylService.getList();
+
+          // find all entries that match the hostname
+          const filteredHostMatches = list.filter((entry: EmayliasRecord) => {
+            return entry.attrDomains.find(dom => dom.domain.includes(hostname));
+          })
+          console.log("filteredHostMatches.length =", filteredHostMatches.length)
+          if (filteredHostMatches.length == 0) {
+            // no matching domains, so go to the create screen
+            if (state == PopupState.AuthenticatedAndManaging) {
+              console.log("filteredHostMatches.length == 0 - set to Authenticated")
+              setState(PopupState.Authenticated)
+            }
+          } else if (filteredHostMatches.length > 0) {
+            // go to the eMayl list screen and filter by the found eMaylias
+            console.log("filteredHostMatches.length > 0 - state =", state)
+            if (state == PopupState.Authenticated) {
+              console.log("filteredHostMatches.length > 0 - set to AuthenticatedAndManaging")
+              setState(PopupState.AuthenticatedAndManaging)
+            }
+            console.log("setting initialSearch to ", hostname)
+            setInitialSearch(hostname);
+          }
+        }
+      }
     };
 
+    console.log("useEffect - isStateLoading =", isStateLoading);
+    if (!isStateLoading) {
+      initDataCheck().catch(console.error);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isStateLoading, setState, state])
+  
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const syncClientAuthState = async (): Promise<boolean> => {
+    console.log("**** calling isAuthenticated()")
+    const isAuthenticated = await emaylService.isAuthenticated();
+    if (isAuthenticated) {
+      setState((prevState) =>
+        prevState === PopupState.SignedOut
+          ? PopupState.Authenticated
+          : prevState
+      );
+    } else {
+      setState(PopupState.SignedOut);
+      performDeauthSideEffects();
+    }
+
+    setClientAuthStateSynced(true);
+    return isAuthenticated;
+  };
+
+
+  useEffect(() => {
     // TODO: check what to do here:
     // !isClientStateLoading && 
     !clientAuthStateSynced && syncClientAuthState();
-  }, [
-    setState,
-    clientAuthStateSynced,
-  ]);
+  }, [setState, clientAuthStateSynced, syncClientAuthState]);
 
   return (
-    <ChakraProvider theme={theme}>
+    <ChakraProvider theme={extendTheme({
+      colors: {
+        primary: {
+          50: "#f7fff8",
+          100: "#f3fff4",
+          200: "#eefff0",
+          300: "#e9ffeb",
+          400: "#e5ffe7",
+          500: "#e0ffe3",
+          600: "#bed9c1",
+          700: "#9db29f",
+          800: "#7b8c7d",
+          900: "#5a665b",
+        }
+      }
+    })}>
       <div className="min-h-full flex items-center justify-center p-4">
         <div className="max-w-md w-full">
           {isStateLoading || !clientAuthStateSynced ? (
             <Spinner />
+          ) : (state == PopupState.SignedOut) ? (
+            <SignInInstructions />
+          ) : (state == PopupState.Authenticated) ? (
+            <EmayliasEditComponent
+              callback={(action: AuthenticatedAction) => {
+                console.log("transitionToNextStateElement - Auth - STATE_MACHINE_TRANSITIONS[state][action] = ", STATE_MACHINE_TRANSITIONS[state][action])
+                setState(STATE_MACHINE_TRANSITIONS[state][action])
+              }}
+              emayliasService={emaylService}
+            />
           ) : (
-            transitionToNextStateElement(state, setState)
-          )}
+            <EmayliasManager
+              callback={(action: AuthenticatedAndManagingAction) => {
+                console.log("transitionToNextStateElement - AuthAndManaging - STATE_MACHINE_TRANSITIONS[state][action] = ", STATE_MACHINE_TRANSITIONS[state][action])
+                setState(STATE_MACHINE_TRANSITIONS[state][action])
+              }}
+              initialSearch={initialSearch}
+              emayliasService={emaylService}
+            />
+          )}          
         </div>
       </div>
     </ChakraProvider>
